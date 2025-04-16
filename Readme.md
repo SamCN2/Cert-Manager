@@ -8,7 +8,7 @@ Node and loopback4 application and api to issue, sign, and manage user certifica
 - Unique username/email constraints
 - PostgreSQL database integration
 
-##Status
+## Status
 - Cert creation and signing works seamlessly (in Firefox, ymmv)
 - Email verification is left to you, as I don't know your mail infra
 -- Challenge tokens are written to logs
@@ -17,16 +17,16 @@ Node and loopback4 application and api to issue, sign, and manage user certifica
 - Username management not entirely sorted, LDAP, anyone?
 - Puts everything in certificate table.  Could use sqlite3 easily enough.
 
-##Components
+## Components
 - cert-create, an nodejs SPA for cert creating and requesting a signature.
 -- Important!  cert-create creates cert in browser.  key never leaves browser.
 - cert-admin, a loopback4 -based api that manages DB calls to track above.
 
-##Installing
+## Installing
 -cert-create:  Just npm install
 -cert-admin:   Just npm install
 
-Created on a vibecoding weeking in Cursor with Claude.
+Created on a vibecoding weekend in Cursor with Claude.
 FWIW, I've never done frontend programming of any sort before.
 I'm a server and command-line kind of individual.  Sure, I can
 write a basic web form and pair that with a cgi, but yecch!
