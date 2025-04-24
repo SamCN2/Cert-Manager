@@ -12,6 +12,7 @@
     "node": "18 || 20 || 22"
   },
   "scripts": {
+    "prebuild": "node scripts/generate-version.js",
     "build": "lb-tsc",
     "build:watch": "lb-tsc --watch",
     "lint": "npm run eslint && npm run prettier:check",

@@ -25,8 +25,9 @@ import {
 import {Certificate} from '../models';
 import {CertificateRepository} from '../repositories';
 import * as crypto from 'crypto';
-import {bind} from '@loopback/core';
+import {bind, inject} from '@loopback/core';
 import {rateLimiter} from '../middleware/rate-limiter.middleware';
+import {VersionService} from '../services/version.service';
 
 // Configuration for email verification
 const EMAIL_VERIFICATION_CONFIG = {
@@ -34,6 +35,14 @@ const EMAIL_VERIFICATION_CONFIG = {
   path: '/certificates',
   expirationMinutes: 30
 };
+
+// Add this interface near the top of the file
+interface SearchCriteria {
+  username?: string;
+  email?: string;
+  codeVersion?: string;
+  fingerprint?: string;
+}
 
 /**
  * Generate a unique serial number suitable for X.509 certificates.
@@ -84,20 +93,34 @@ export class CertificateController {
   constructor(
     @repository(CertificateRepository)
     public certificateRepository : CertificateRepository,
+    @inject('services.VersionService')
+    private versionService: VersionService,
   ) {}
 
-  // Helper function to generate a secure challenge string and verification URL
-  private generateEmailChallenge(serialNumber: string): { challenge: string, verificationUrl: string } {
+  // Helper function to generate a secure challenge string and verification URLs
+  private generateEmailChallenge(serialNumber: string): { 
+    challenge: string, 
+    verificationUrl: string,
+    negativeUrl: string 
+  } {
     // Generate a random 32-byte string and encode as hex
     const challenge = crypto.randomBytes(32).toString('hex');
     
-    // Create a verification URL that includes both serial number and challenge
-    const verificationUrl = new URL(`${EMAIL_VERIFICATION_CONFIG.path}/${serialNumber}/verify-email`, EMAIL_VERIFICATION_CONFIG.baseUrl);
-    verificationUrl.searchParams.set('challenge', challenge);
+    // Create verification URLs that include serial number and challenge
+    const baseUrl = new URL(`${EMAIL_VERIFICATION_CONFIG.path}/${serialNumber}/verify-email`, EMAIL_VERIFICATION_CONFIG.baseUrl);
+    baseUrl.searchParams.set('challenge', challenge);
+    
+    // Create positive verification URL
+    const verificationUrl = new URL(baseUrl.toString());
+    
+    // Create negative verification URL
+    const negativeUrl = new URL(baseUrl.toString());
+    negativeUrl.searchParams.set('notme', 'true');
     
     return {
       challenge,
-      verificationUrl: verificationUrl.toString()
+      verificationUrl: verificationUrl.toString(),
+      negativeUrl: negativeUrl.toString()
     };
   }
 
@@ -173,25 +196,29 @@ export class CertificateController {
       );
     }
 
-    const now = new Date();
     const serialNumber = await this.generateSerialNumber();
+    const now = new Date();
     
-    // Generate email challenge and verification URL
-    const { challenge, verificationUrl } = this.generateEmailChallenge(serialNumber);
+    // Generate email challenge and verification URLs
+    const { challenge, verificationUrl, negativeUrl } = this.generateEmailChallenge(serialNumber);
     console.log(`Email validation for ${certificate.email}:`);
     console.log(`- Challenge: ${challenge}`);
     console.log(`- Verification URL: ${verificationUrl}`);
+    console.log(`- Negative URL: ${negativeUrl}`);
     
+    const newCertificate = {
+      ...certificate,
+      serialNumber,
+      issuedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000)).toISOString(), // 1 year
+      codeVersion: this.versionService.getCurrentVersion(),
+      emailVerified: false,
+      emailChallenge: challenge,
+      challengeGeneratedAt: now.toISOString(),
+    };
+
     try {
-      return await this.certificateRepository.create({
-        ...certificate,
-        serialNumber,
-        issuedAt: now.toISOString(),
-        expiresAt: new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString(),
-        emailVerified: false,
-        emailChallenge: challenge,
-        challengeGeneratedAt: now.toISOString(),
-      });
+      return await this.certificateRepository.create(newCertificate);
     } catch (error) {
       // Handle database-level uniqueness violation
       if (error.code === '23505') { // PostgreSQL unique violation code
@@ -205,46 +232,65 @@ export class CertificateController {
 
   @get('/certificates/{serialNumber}/verify-email')
   @response(200, {
-    description: 'Email verification via GET',
+    description: 'Verify email for certificate',
     content: {'text/html': {schema: {type: 'string'}}},
   })
   async verifyEmailGet(
     @param.path.string('serialNumber') serialNumber: string,
     @param.query.string('challenge') challenge: string,
+    @param.query.boolean('notme') notme?: boolean,
   ): Promise<string> {
-    const certificate = await this.certificateRepository.findById(serialNumber);
-    
     try {
+      const certificate = await this.certificateRepository.findById(serialNumber);
+      
       if (!certificate.emailChallenge) {
-        throw new HttpErrors.BadRequest('No email challenge found for this certificate');
+        return this.renderVerificationPage('This certificate has already been verified or invalidated.', false);
       }
 
-      if (certificate.emailVerified) {
-        return this.renderVerificationPage('Email already verified', true);
+      if (certificate.emailChallenge !== challenge) {
+        return this.renderVerificationPage('Invalid verification link.', false);
       }
 
-      // Check if challenge has expired (30 minutes)
-      const challengeAge = Date.now() - new Date(certificate.challengeGeneratedAt!).getTime();
-      if (challengeAge > EMAIL_VERIFICATION_CONFIG.expirationMinutes * 60 * 1000) {
-        throw new HttpErrors.BadRequest('Email challenge has expired');
+      const now = new Date();
+      const challengeAge = certificate.challengeGeneratedAt
+        ? (now.getTime() - new Date(certificate.challengeGeneratedAt).getTime()) / 1000 / 60
+        : Number.POSITIVE_INFINITY;
+
+      if (challengeAge > EMAIL_VERIFICATION_CONFIG.expirationMinutes) {
+        return this.renderVerificationPage('This verification link has expired.', false);
       }
 
-      if (challenge !== certificate.emailChallenge) {
-        throw new HttpErrors.BadRequest('Invalid challenge');
+      // Handle negative confirmation
+      if (notme) {
+        await this.certificateRepository.updateById(serialNumber, {
+          email: 'UNVERIFIED@EMAIL',
+          emailChallenge: '',
+          emailVerified: false,
+          challengeGeneratedAt: undefined,
+          revoked: true,
+          revokedAt: now.toISOString(),
+          revokedReason: 'Email ownership denied by recipient'
+        });
+        return this.renderVerificationPage(
+          'Thank you for letting us know. This certificate has been invalidated and marked for cleanup.',
+          true
+        );
       }
 
+      // Handle positive confirmation
       await this.certificateRepository.updateById(serialNumber, {
         emailVerified: true,
-        emailChallenge: undefined,
-        challengeGeneratedAt: undefined,
+        emailChallenge: '',
+        challengeGeneratedAt: undefined
       });
 
-      return this.renderVerificationPage('Email verification successful!', true);
-    } catch (error) {
       return this.renderVerificationPage(
-        error instanceof HttpErrors.HttpError ? error.message : 'Verification failed',
-        false
+        'Your email has been successfully verified. Your certificate is now active.',
+        true
       );
+
+    } catch (error) {
+      return this.renderVerificationPage('Certificate not found or verification failed.', false);
     }
   }
 
@@ -425,49 +471,88 @@ export class CertificateController {
 
   private renderVerificationPage(message: string, success: boolean): string {
     const color = success ? '#28a745' : '#dc3545';
+    const icon = success ? '✓' : '✗';
+    
     return `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Email Verification</title>
+          <title>Certificate Email Verification</title>
+          <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 100vh;
-              margin: 0;
-              background-color: #f8f9fa;
-            }
-            .container {
-              text-align: center;
+              line-height: 1.6;
               padding: 2rem;
-              background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              max-width: 400px;
-              width: 90%;
+              max-width: 600px;
+              margin: 0 auto;
+              text-align: center;
             }
             .message {
+              padding: 1rem;
+              border-radius: 4px;
+              background-color: ${color}15;
               color: ${color};
-              font-size: 1.25rem;
-              margin: 1rem 0;
+              margin: 2rem 0;
             }
             .icon {
-              font-size: 4rem;
+              font-size: 48px;
               margin-bottom: 1rem;
             }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="icon">${success ? '✅' : '❌'}</div>
-            <div class="message">${message}</div>
-          </div>
+          <div class="icon">${icon}</div>
+          <div class="message">${message}</div>
         </body>
       </html>
     `;
+  }
+
+  @get('/certificates/search')
+  @response(200, {
+    description: 'Search certificates by username, email, version, or fingerprint',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: getModelSchemaRef(Certificate),
+        },
+      },
+    },
+  })
+  async search(
+    @param.query.string('username') username?: string,
+    @param.query.string('email') email?: string,
+    @param.query.string('version') version?: string,
+    @param.query.string('fingerprint') fingerprint?: string,
+  ): Promise<Certificate[]> {
+    const criteria: SearchCriteria = {};
+    
+    // Build search criteria
+    if (username) criteria.username = username;
+    if (email) criteria.email = email;
+    if (version) criteria.codeVersion = version;
+    if (fingerprint) criteria.fingerprint = fingerprint;
+
+    // If no criteria provided, throw an error
+    if (Object.keys(criteria).length === 0) {
+      throw new HttpErrors.BadRequest(
+        'At least one search criterion (username, email, version, or fingerprint) must be provided'
+      );
+    }
+
+    // Create WHERE clause for all provided criteria
+    const where = {
+      and: Object.entries(criteria).map(([key, value]) => ({
+        [key]: value
+      }))
+    };
+
+    return this.certificateRepository.find({
+      where,
+      order: ['issuedAt DESC']
+    });
   }
 }

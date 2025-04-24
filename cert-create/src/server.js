@@ -8,16 +8,21 @@ const forge = require('node-forge');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const version = require(path.join(__dirname, '../version'));
+const userAdminService = require('./services/user-admin.service');
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));  // Increased limit for CSR
-app.use(express.static(path.join(__dirname, '../../webroot')));
+app.use(express.static(path.join(__dirname, '../webroot')));
 
 // Add cert-admin API configuration
 const CERT_ADMIN_URL = process.env.CERT_ADMIN_URL || 'http://localhost:3003';
+
+// Add user-admin API configuration
+const USER_ADMIN_URL = process.env.USER_ADMIN_URL || 'http://localhost:3004';
 
 // Load CA certificate and private key
 let caCert, caPrivateKey;
@@ -35,14 +40,18 @@ try {
 
 app.post('/api/sign-certificate', async (req, res) => {
     try {
-        const { csr, userData } = req.body;
+        const { csr, username } = req.body;
         
-        if (!csr || !userData) {
-            return res.status(400).json({ error: 'Missing CSR or user data' });
+        if (!csr || !username) {
+            return res.status(400).json({ error: 'Missing CSR or username' });
         }
 
         console.log('Received CSR:', csr.substring(0, 100) + '...');
-        console.log('User data:', userData);
+        console.log('Username:', username);
+
+        // Fetch user details from user-admin
+        const userData = await userAdminService.getUserDetails(username);
+        console.log('Fetched user details:', userData);
 
         // Parse and verify the CSR
         const csrObj = forge.pki.certificationRequestFromPem(csr);
@@ -101,7 +110,8 @@ app.post('/api/sign-certificate', async (req, res) => {
         // A record without a fingerprint indicates an incomplete certificate creation
         const certData = {
             username: userData.username,
-            email: userData.email
+            email: userData.email,
+            codeVersion: version
         };
 
         console.log('Phase 1 - Requesting serial number from cert-admin:', certData);
@@ -164,6 +174,64 @@ app.post('/api/sign-certificate', async (req, res) => {
         res.status(500).json({ 
             error: 'Failed to create or store certificate',
             details: error.response?.data || error.message 
+        });
+    }
+});
+
+// Username validation endpoint
+app.post('/api/validate-username', async (req, res) => {
+    try {
+        const { username } = req.body;
+        
+        if (!username) {
+            return res.status(400).json({ error: 'Username is required', valid: false });
+        }
+
+        // Query user-admin service to validate username
+        const response = await axios.get(`${USER_ADMIN_URL}/api/users/check-username/${username}`);
+        
+        // The username is valid if it exists in the user-admin service
+        // We don't want to check availability, we want to check existence
+        res.json({ valid: response.data.exists });
+    } catch (error) {
+        console.error('Username validation error:', error);
+        // If the error is from user-admin service, pass through the response
+        if (error.response) {
+            return res.status(error.response.status).json({
+                error: error.response.data.error || 'Username validation failed',
+                valid: false
+            });
+        }
+        res.status(500).json({ error: 'Username validation failed', valid: false });
+    }
+});
+
+// Get user data endpoint
+app.get('/api/user/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+        
+        if (!username) {
+            return res.status(400).json({ error: 'Username is required' });
+        }
+
+        // Query user-admin service to get user data
+        const response = await axios.get(`${USER_ADMIN_URL}/api/users/${username}`);
+        
+        res.json({
+            name: response.data.displayName,
+            email: response.data.email || '',
+            username: response.data.username
+        });
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        if (error.response) {
+            return res.status(error.response.status).json({
+                error: error.response.data.error || 'Failed to fetch user data'
+            });
+        }
+        res.status(500).json({
+            error: 'Internal server error while fetching user data'
         });
     }
 });

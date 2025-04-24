@@ -18,6 +18,15 @@ export class Certificate extends Entity {
   @property({
     type: 'string',
     required: true,
+    postgresql: {
+      dataType: 'text',
+    },
+  })
+  codeVersion: string;
+
+  @property({
+    type: 'string',
+    required: true,
   })
   username: string;
 
@@ -95,6 +104,17 @@ export class Certificate extends Entity {
     type: 'date',
   })
   revokedAt?: string;
+
+  @property({
+    type: 'string',
+    required: false,
+    postgresql: {
+      columnName: 'revoked_reason',
+      dataType: 'text',
+      nullable: true
+    }
+  })
+  revokedReason?: string;
 
   @property({
     type: 'array',
