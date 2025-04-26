@@ -1,0 +1,128 @@
+<div class="page-content">
+    <div class="mdc-layout-grid">
+        <div class="mdc-layout-grid__inner">
+            <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+                <h2 class="mdc-typography--headline4">{{#if isNew}}New User{{else}}Edit User{{/if}}</h2>
+
+                <form method="POST" action="{{#if isNew}}/users{{else}}/users/{{user.username}}{{/if}}">
+                    <div class="form-field mdc-text-field mdc-text-field--outlined">
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="mdc-text-field__input" 
+                               value="{{user.username}}"
+                               {{#unless isNew}}disabled{{/unless}}
+                               required
+                               pattern="^[a-zA-Z0-9_-]+$">
+                        <div class="mdc-notched-outline">
+                            <div class="mdc-notched-outline__leading"></div>
+                            <div class="mdc-notched-outline__notch">
+                                <label for="username" class="mdc-floating-label">Username</label>
+                            </div>
+                            <div class="mdc-notched-outline__trailing"></div>
+                        </div>
+                    </div>
+                    <div class="mdc-text-field-helper-line">
+                        <div class="mdc-text-field-helper-text">Only letters, numbers, underscores, and hyphens</div>
+                    </div>
+
+                    <div class="form-field mdc-text-field mdc-text-field--outlined">
+                        <input type="text" 
+                               id="displayName" 
+                               name="displayName" 
+                               class="mdc-text-field__input" 
+                               value="{{user.displayName}}"
+                               required>
+                        <div class="mdc-notched-outline">
+                            <div class="mdc-notched-outline__leading"></div>
+                            <div class="mdc-notched-outline__notch">
+                                <label for="displayName" class="mdc-floating-label">Display Name</label>
+                            </div>
+                            <div class="mdc-notched-outline__trailing"></div>
+                        </div>
+                    </div>
+
+                    {{#if isNew}}
+                    <div class="form-field mdc-text-field mdc-text-field--outlined">
+                        <input type="text" 
+                               id="responsibleParty" 
+                               name="responsibleParty" 
+                               class="mdc-text-field__input" 
+                               value="{{user.responsibleParty}}"
+                               required>
+                        <div class="mdc-notched-outline">
+                            <div class="mdc-notched-outline__leading"></div>
+                            <div class="mdc-notched-outline__notch">
+                                <label for="responsibleParty" class="mdc-floating-label">Responsible Party</label>
+                            </div>
+                            <div class="mdc-notched-outline__trailing"></div>
+                        </div>
+                    </div>
+                    {{/if}}
+
+                    <div class="form-field mdc-text-field mdc-text-field--outlined mdc-text-field--textarea">
+                        <textarea id="groupNames" 
+                                  name="groupNames" 
+                                  class="mdc-text-field__input">{{#each user.groups}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}</textarea>
+                        <div class="mdc-notched-outline">
+                            <div class="mdc-notched-outline__leading"></div>
+                            <div class="mdc-notched-outline__notch">
+                                <label for="groupNames" class="mdc-floating-label">Groups (comma-separated)</label>
+                            </div>
+                            <div class="mdc-notched-outline__trailing"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="mdc-button mdc-button--raised">
+                            <span class="mdc-button__ripple"></span>
+                            <i class="material-icons mdc-button__icon">save</i>
+                            <span class="mdc-button__label">Save</span>
+                        </button>
+                        <a href="/users" class="mdc-button mdc-button--outlined">
+                            <span class="mdc-button__ripple"></span>
+                            <i class="material-icons mdc-button__icon">cancel</i>
+                            <span class="mdc-button__label">Cancel</span>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-field {
+    display: block;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.mdc-text-field {
+    width: 100%;
+}
+
+.form-actions {
+    margin-top: 32px;
+}
+
+.mdc-text-field--textarea {
+    height: auto;
+}
+
+.mdc-text-field--textarea .mdc-text-field__input {
+    height: 100px;
+    padding: 16px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize text fields
+    const textFields = document.querySelectorAll('.mdc-text-field');
+    textFields.forEach(textField => {
+        mdc.textField.MDCTextField.attachTo(textField);
+    });
+});
+</script> 

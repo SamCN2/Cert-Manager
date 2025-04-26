@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Manager</title>
+    <!-- Material Design -->
+    <link href="/material/material-components-web.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Custom styles -->
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body class="mdc-typography">
+    <header class="mdc-top-app-bar">
+        <div class="mdc-top-app-bar__row">
+            <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+                <span class="mdc-top-app-bar__title">User Manager</span>
+            </section>
+            <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+                <a href="/" class="mdc-button mdc-button--unelevated">
+                    <span class="mdc-button__ripple"></span>
+                    <span class="mdc-button__label">Home</span>
+                </a>
+                <a href="/users" class="mdc-button mdc-button--unelevated">
+                    <span class="mdc-button__ripple"></span>
+                    <span class="mdc-button__label">Users</span>
+                </a>
+                <a href="/groups" class="mdc-button mdc-button--unelevated">
+                    <span class="mdc-button__ripple"></span>
+                    <span class="mdc-button__label">Groups</span>
+                </a>
+            </section>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="mdc-top-app-bar--fixed-adjust">
+            {{#if error}}
+            <div class="mdc-banner" role="banner">
+                <div class="mdc-banner__content">
+                    <div class="mdc-banner__graphic-text-wrapper">
+                        <div class="mdc-banner__text">{{error}}</div>
+                    </div>
+                    <div class="mdc-banner__actions">
+                        <button type="button" class="mdc-button mdc-banner__primary-action">
+                            <div class="mdc-button__ripple"></div>
+                            <div class="mdc-button__label">Dismiss</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+            {{{body}}}
+        </div>
+    </main>
+
+    <!-- Material Design JavaScript -->
+    <script src="/material/material-components-web.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/js/app.js"></script>
+</body>
+</html> 

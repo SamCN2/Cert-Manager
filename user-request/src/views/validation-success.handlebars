@@ -1,0 +1,30 @@
+<div class="page-content">
+  <div class="mdc-card">
+    <div class="mdc-card__content">
+      <h2 class="mdc-typography--headline4">Email Validated Successfully</h2>
+      
+      <div class="message-content">
+        {{#if message}}
+          <p class="mdc-typography--body1">{{message}}</p>
+        {{else}}
+          <p class="mdc-typography--body1">
+            Thank you for validating your email address. Your username <strong>{{username}}</strong> has been confirmed.
+          </p>
+
+          <div class="info-box">
+            <h3 class="mdc-typography--headline6">What's Next?</h3>
+            <ol class="mdc-typography--body1">
+              <li>An administrator will review your account request</li>
+              <li>You'll receive an email when your account is approved</li>
+              <li>Once approved, you can use your username to request certificates</li>
+            </ol>
+          </div>
+
+          <p class="mdc-typography--body1">
+            This process usually takes 1-2 business days. If you haven't heard back after that time, please contact support.
+          </p>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</div> 

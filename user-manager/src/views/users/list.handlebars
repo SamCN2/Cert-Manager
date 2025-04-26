@@ -1,0 +1,95 @@
+<div class="page-content">
+    <div class="mdc-layout-grid">
+        <div class="mdc-layout-grid__inner">
+            <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+                <h2 class="mdc-typography--headline4">Users</h2>
+                
+                <div class="mdc-layout-grid__inner">
+                    <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+                        <a href="/users/new" class="mdc-button mdc-button--raised">
+                            <span class="mdc-button__ripple"></span>
+                            <i class="material-icons mdc-button__icon">add</i>
+                            <span class="mdc-button__label">Add User</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mdc-data-table">
+                    <div class="mdc-data-table__table-container">
+                        <table class="mdc-data-table__table">
+                            <thead>
+                                <tr class="mdc-data-table__header-row">
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Username</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Display Name</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Groups</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="mdc-data-table__content">
+                                {{#if users}}
+                                    {{#each users}}
+                                    <tr class="mdc-data-table__row">
+                                        <td class="mdc-data-table__cell">{{this.username}}</td>
+                                        <td class="mdc-data-table__cell">{{this.displayName}}</td>
+                                        <td class="mdc-data-table__cell">
+                                            {{#each this.groups}}
+                                                <span class="mdc-chip" role="row">
+                                                    <span class="mdc-chip__text">{{this.name}}</span>
+                                                </span>
+                                            {{/each}}
+                                        </td>
+                                        <td class="mdc-data-table__cell">
+                                            <a href="/users/{{this.username}}/edit" 
+                                               class="mdc-button mdc-button--outlined">
+                                                <span class="mdc-button__ripple"></span>
+                                                <i class="material-icons mdc-button__icon">edit</i>
+                                                <span class="mdc-button__label">Edit</span>
+                                            </a>
+                                            <form action="/users/{{this.username}}/delete" 
+                                                  method="POST" 
+                                                  style="display: inline-block;"
+                                                  onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <button type="submit" 
+                                                        class="mdc-button mdc-button--outlined mdc-button--danger">
+                                                    <span class="mdc-button__ripple"></span>
+                                                    <i class="material-icons mdc-button__icon">delete</i>
+                                                    <span class="mdc-button__label">Delete</span>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {{/each}}
+                                {{else}}
+                                    <tr class="mdc-data-table__row">
+                                        <td class="mdc-data-table__cell" colspan="4">
+                                            No users found. <a href="/users/new">Add one?</a>
+                                        </td>
+                                    </tr>
+                                {{/if}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.mdc-chip {
+    margin: 4px;
+}
+
+.mdc-button--danger {
+    color: #d32f2f;
+    border-color: #d32f2f;
+}
+
+.mdc-button--danger:hover {
+    background-color: rgba(211, 47, 47, 0.04);
+}
+
+.mdc-data-table {
+    margin-top: 24px;
+}
+</style> 

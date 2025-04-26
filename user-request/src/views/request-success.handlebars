@@ -1,0 +1,29 @@
+{{> header}}
+
+<div class="card">
+  <div class="card-body">
+    <h2 class="card-title text-success">Request Submitted!</h2>
+    <p class="card-text">Your account request has been received and is being processed.</p>
+    <hr>
+    <p class="mb-0">You will receive an email notification when your request has been reviewed.</p>
+  </div>
+</div>
+
+<div class="text-center mt-4">
+  <a href="/" class="btn btn-primary">Return to Home</a>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <h4 class="card-title">Manual Challenge Verification</h4>
+    <form method="POST" action="/validate-challenge">
+      <div class="form-group">
+        <label for="challenge">Enter Challenge Token from Email:</label>
+        <input type="text" class="form-control" id="challenge" name="challenge" required>
+      </div>
+      <button type="submit" class="btn btn-success mt-2">Verify</button>
+    </form>
+  </div>
+</div>
+
+{{> footer}} 

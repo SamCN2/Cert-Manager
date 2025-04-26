@@ -1,0 +1,23 @@
+{
+  "name": "user-manager",
+  "version": "1.0.0",
+  "description": "Material Design frontend for user-admin service",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "express": "^4.18.2",
+    "express-handlebars": "^7.1.2",
+    "material-components-web": "^14.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}

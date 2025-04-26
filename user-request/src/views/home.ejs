@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Management</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Certificate Management</h1>
+        
+        <% if (certStatus.valid) { %>
+            <!-- Case 4: Valid Certificate -->
+            <div class="user-info">
+                <h2>Welcome, <%= user.displayName %></h2>
+                <p>Email: <%= user.email %></p>
+                
+                <div class="actions">
+                    <h3>Available Actions</h3>
+                    <a href="/profile" class="button">Manage Profile</a>
+                    <a href="/cert-create" class="button">Create New Certificate</a>
+                </div>
+            </div>
+        
+        <% } else if (certStatus.expired) { %>
+            <!-- Case 3: Expired Certificate -->
+            <div class="expired-cert">
+                <h2>Certificate Expired</h2>
+                <p>We've sent a validation email to <%= user.email %>.</p>
+                <p>Please check your email to continue.</p>
+            </div>
+        
+        <% } else if (certStatus.invalid) { %>
+            <!-- Case 2: Invalid/Malformed Certificate -->
+            <div class="email-validation">
+                <h2>Validate Your Email</h2>
+                <form action="/validate-email" method="POST" class="email-form">
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <button type="submit" class="button">Validate Email</button>
+                </form>
+            </div>
+        
+        <% } else { %>
+            <!-- Case 1: No Certificate -->
+            <div class="no-cert">
+                <h2>Welcome to Certificate Management</h2>
+                <p>To get started, request access to create your certificate.</p>
+                <a href="/request" class="button primary">Request Access</a>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        // Add any client-side validation if needed
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailForm = document.querySelector('.email-form');
+            if (emailForm) {
+                emailForm.addEventListener('submit', function(e) {
+                    const email = document.getElementById('email').value;
+                    if (!email || !email.includes('@')) {
+                        e.preventDefault();
+                        alert('Please enter a valid email address');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

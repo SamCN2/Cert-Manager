@@ -1,0 +1,100 @@
+{{> header}}
+
+<div class="card">
+  <div class="card-body">
+    <h2 class="card-title">Request New Account</h2>
+    
+    {{#if error}}
+    <div class="alert alert-danger" role="alert">
+      {{error}}
+    </div>
+    {{/if}}
+
+    <form id="requestForm" method="POST" action="">
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" class="form-control" id="username" name="username" 
+               pattern="^[a-z0-9\-]{2,30}$" required
+               value="{{username}}"
+               data-check-url="/api/user-admin/users/check-username/">
+        <div class="form-text">
+          Lowercase letters, numbers, and hyphens only. Length: 2-30 characters.
+        </div>
+        <div id="usernameStatus" class="mt-2"></div>
+      </div>
+
+      <div class="mb-3">
+        <label for="displayName" class="form-label">Display Name</label>
+        <input type="text" class="form-control" id="displayName" name="displayName" 
+               required maxlength="100"
+               value="{{displayName}}">
+      </div>
+
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email" 
+               required
+               value="{{email}}">
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitButton">Submit Request</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const usernameInput = document.getElementById('username');
+const usernameStatus = document.getElementById('usernameStatus');
+const submitButton = document.getElementById('submitButton');
+let checkTimeout;
+
+usernameInput.addEventListener('input', function() {
+  clearTimeout(checkTimeout);
+  const username = this.value.trim();
+  
+  // Clear status if empty
+  if (!username) {
+    usernameStatus.innerHTML = '';
+    submitButton.disabled = true;
+    return;
+  }
+
+  // Validate format first
+  if (!username.match(/^[a-z0-9\-]{2,30}$/)) {
+    usernameStatus.innerHTML = '<div class="alert alert-warning">Username must be 2-30 characters, using only lowercase letters, numbers, and hyphens.</div>';
+    submitButton.disabled = true;
+    return;
+  }
+
+  // Show checking status
+  usernameStatus.innerHTML = '<div class="text-info">Checking availability...</div>';
+  submitButton.disabled = true;
+
+  // Debounce the check
+  checkTimeout = setTimeout(() => {
+    fetch(`/api/user-admin/users/check-username/${username}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.available) {
+          usernameStatus.innerHTML = '<div class="alert alert-success">Username is available!</div>';
+          submitButton.disabled = false;
+        } else {
+          usernameStatus.innerHTML = '<div class="alert alert-danger">Username is already taken.</div>';
+          submitButton.disabled = true;
+        }
+      })
+      .catch(error => {
+        console.error('Error checking username:', error);
+        usernameStatus.innerHTML = '<div class="alert alert-danger">Error checking username availability.</div>';
+        submitButton.disabled = true;
+      });
+  }, 500);
+});
+</script>
+
+{{> footer}} 

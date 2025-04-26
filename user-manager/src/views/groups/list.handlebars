@@ -1,0 +1,155 @@
+{{#if error}}
+<div class="mdc-banner" role="banner">
+    <div class="mdc-banner__content">
+        <div class="mdc-banner__graphic-text-wrapper">
+            <div class="mdc-banner__text">{{error}}</div>
+        </div>
+        <div class="mdc-banner__actions">
+            <button type="button" class="mdc-button mdc-banner__primary-action">
+                <div class="mdc-button__ripple"></div>
+                <div class="mdc-button__label">Dismiss</div>
+            </button>
+        </div>
+    </div>
+</div>
+{{/if}}
+
+<div class="page-content">
+    <div class="mdc-layout-grid">
+        <div class="mdc-layout-grid__inner">
+            <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+                <h2 class="mdc-typography--headline4">Groups</h2>
+                
+                <div class="mdc-layout-grid__inner">
+                    <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+                        <a href="/groups/new" class="mdc-button mdc-button--raised">
+                            <span class="mdc-button__ripple"></span>
+                            <i class="material-icons mdc-button__icon">add</i>
+                            <span class="mdc-button__label">Add Group</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mdc-data-table">
+                    <div class="mdc-data-table__table-container">
+                        <table class="mdc-data-table__table">
+                            <thead>
+                                <tr class="mdc-data-table__header-row">
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Name</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Display Name</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Description</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Responsible Party</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Members</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="mdc-data-table__content">
+                                {{#if groups}}
+                                    {{#each groups}}
+                                    <tr class="mdc-data-table__row">
+                                        <td class="mdc-data-table__cell">{{this.name}}</td>
+                                        <td class="mdc-data-table__cell">{{this.displayName}}</td>
+                                        <td class="mdc-data-table__cell">{{this.description}}</td>
+                                        <td class="mdc-data-table__cell">{{this.responsibleParty}}</td>
+                                        <td class="mdc-data-table__cell">
+                                            {{#if this.members}}
+                                                {{#each this.members}}
+                                                    <span class="mdc-chip" role="row">
+                                                        <span class="mdc-chip__text">{{this}}</span>
+                                                    </span>
+                                                {{/each}}
+                                            {{else}}
+                                                <span class="text-muted">No members</span>
+                                            {{/if}}
+                                        </td>
+                                        <td class="mdc-data-table__cell">
+                                            <a href="/groups/{{this.name}}/edit" 
+                                               class="mdc-button mdc-button--outlined">
+                                                <span class="mdc-button__ripple"></span>
+                                                <i class="material-icons mdc-button__icon">edit</i>
+                                                <span class="mdc-button__label">Edit</span>
+                                            </a>
+                                            <form action="/groups/{{this.name}}/delete" 
+                                                  method="POST" 
+                                                  style="display: inline-block;"
+                                                  onsubmit="return confirm('Are you sure you want to delete this group?');">
+                                                <button type="submit" 
+                                                        class="mdc-button mdc-button--outlined mdc-button--danger">
+                                                    <span class="mdc-button__ripple"></span>
+                                                    <i class="material-icons mdc-button__icon">delete</i>
+                                                    <span class="mdc-button__label">Delete</span>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {{/each}}
+                                {{else}}
+                                    <tr class="mdc-data-table__row">
+                                        <td class="mdc-data-table__cell" colspan="6">
+                                            No groups found. <a href="/groups/new">Add one?</a>
+                                        </td>
+                                    </tr>
+                                {{/if}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.mdc-chip {
+    margin: 4px;
+}
+
+.mdc-button--danger {
+    color: #d32f2f;
+    border-color: #d32f2f;
+}
+
+.mdc-button--danger:hover {
+    background-color: rgba(211, 47, 47, 0.04);
+}
+
+.mdc-data-table {
+    margin-top: 24px;
+    width: 100%;
+}
+
+.mdc-data-table__cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-muted {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.mdc-banner {
+    margin-bottom: 24px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize banner if present
+    const bannerElement = document.querySelector('.mdc-banner');
+    if (bannerElement) {
+        const banner = new mdc.banner.MDCBanner(bannerElement);
+        banner.open();
+        
+        // Auto-hide banner after 5 seconds
+        setTimeout(() => banner.close(), 5000);
+    }
+    
+    // Initialize data table
+    const dataTable = document.querySelector('.mdc-data-table');
+    if (dataTable) {
+        new mdc.dataTable.MDCDataTable(dataTable);
+    }
+});
+</script> 

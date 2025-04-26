@@ -1,0 +1,62 @@
+{{#if error}}
+<div class="alert alert-danger">{{error}}</div>
+{{/if}}
+
+<h2>{{#if isNew}}New Group{{else}}Edit Group{{/if}}</h2>
+
+<form method="POST" action="{{#if isNew}}/groups{{else}}/groups/{{group.name}}{{/if}}" class="needs-validation" novalidate>
+  <div class="mb-3">
+    <label for="name" class="form-label">Group Name</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{group.name}}" pattern="[a-z0-9-]+" {{#unless isNew}}readonly{{/unless}} required>
+    <div class="invalid-feedback">
+      Please enter a valid group name (lowercase letters, numbers, and hyphens only)
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="displayName" class="form-label">Display Name</label>
+    <input type="text" class="form-control" id="displayName" name="displayName" value="{{group.displayName}}" required>
+    <div class="invalid-feedback">
+      Please enter a display name
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="description" class="form-label">Description</label>
+    <textarea class="form-control" id="description" name="description" rows="3">{{group.description}}</textarea>
+  </div>
+
+  <div class="mb-3">
+    <label for="responsibleParty" class="form-label">Responsible Party</label>
+    <input type="text" class="form-control" id="responsibleParty" name="responsibleParty" value="{{group.responsibleParty}}" required>
+    <div class="invalid-feedback">
+      Please enter a responsible party
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="members" class="form-label">Members (comma-separated)</label>
+    <input type="text" class="form-control" id="members" name="members" value="{{#if group.members}}{{group.members}}{{/if}}">
+    <div class="form-text">Enter usernames separated by commas</div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">{{#if isNew}}Create{{else}}Update{{/if}} Group</button>
+  <a href="/groups" class="btn btn-secondary">Cancel</a>
+</form>
+
+<script>
+// Form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms).forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      form.classList.add('was-validated')
+    }, false)
+  })
+})()
+</script> 
