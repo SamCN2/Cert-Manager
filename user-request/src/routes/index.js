@@ -123,58 +123,38 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Handle email validation
+// Handle email validation - main route
 router.get('/validate/:token', validateEmail);
 
-// Alias for legacy or alternate email links
-router.get('/request/validate/:token', validateEmail);
-
-// GET handler for /validate-challenge to prevent 404s
-router.get('/validate-challenge', (req, res) => {
-  res.redirect('/');
+// GET handler for manual token entry form
+router.get('/validate', (req, res) => {
+  res.render('validate-form', { title: 'Validate Email' });
 });
 
-// POST handler for manual challenge verification from the request-success page
-router.post('/validate-challenge', async (req, res) => {
-  const { challenge } = req.body;
-  if (!challenge) {
-    return res.render('validation-error', { error: 'Challenge token is required.' });
+// POST handler for manual token validation
+router.post('/validate', async (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.render('validation-error', { error: 'Validation token is required.' });
   }
   try {
-    req.params = { token: challenge };
-    // Call the controller function directly, but capture the result
-    // We'll use a custom callback to redirect on success
-    const originalRender = res.render;
-    res.render = function(view, options) {
-      if (view === 'validation-success') {
-        // Redirect to a dedicated success page
-        return res.redirect('/validation-success');
-      }
-      // Otherwise, render as normal (for errors)
-      return originalRender.call(this, view, options);
-    };
-    await require('../controllers/validation.controller').validateEmail(req, res);
-    res.render = originalRender; // Restore
+    req.params = { token }; // Match the expected parameter format
+    await validateEmail(req, res);
   } catch (error) {
-    logger.error('Error validating challenge token:', {
+    logger.error('Error validating token:', {
       error: error.message,
       stack: error.stack,
-      challenge
+      token
     });
-    res.render('validation-error', { error: error.message || 'Failed to validate challenge token.' });
+    res.render('validation-error', { error: error.message || 'Failed to validate token.' });
   }
 });
 
-// GET handler for /validation-success
+// Success page route
 router.get('/validation-success', (req, res) => {
-  res.render('validation-success', { message: 'Your email has been validated and your account is now active.' });
+  res.render('validation-success', {
+    message: 'Your email has been validated and your account is now active.'
+  });
 });
-
-// Validation routes
-router.get('/validate/:token', validateEmail);
-router.get('/validation-success', (req, res) => {
-    res.render('validation-success');
-});
-router.post('/verify-token', verifyValidationToken);
 
 module.exports = router; 

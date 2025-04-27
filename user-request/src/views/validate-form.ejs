@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validate Email</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="validation-form">
+            <h2>Email Validation</h2>
+            <p>Please enter the validation token from your email:</p>
+            
+            <form method="POST" action="/validate">
+                <div class="form-group">
+                    <label for="token">Validation Token:</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="token" 
+                           name="token" 
+                           required 
+                           autocomplete="off"
+                           placeholder="Enter your validation token">
+                </div>
+                <div class="button-container">
+                    <button type="submit" class="btn">Validate Email</button>
+                </div>
+            </form>
+            
+            <div class="mt-4 text-center">
+                <a href="/" class="btn btn-secondary">Return to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

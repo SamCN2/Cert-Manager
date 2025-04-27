@@ -25,31 +25,55 @@ function generateValidationToken(email) {
  * Handle email validation
  */
 async function validateEmail(req, res) {
-    const { token } = req.params;
+    // Get token from either params (GET request) or body (POST request)
+    const token = req.params.token || req.body.token;
     logger.info('Starting email validation:', { token });
     
     try {
-        // Get the request record by challenge token and validate it
+        // Validate the email token and get the updated request
         const request = await userAdminService.validateEmailToken(token);
-        
-        // Create the user from the request
-        const userData = await userAdminService.createUserFromRequest(request);
-        
+        logger.info('Email validation successful:', { 
+            requestId: request.id,
+            username: request.username,
+            status: request.status
+        });
+
         // Generate a new validation token for cert-create
-        const validationToken = generateValidationToken(userData.email);
+        const validationToken = generateValidationToken(request.email);
         
         // Store the validation token with a short expiry
-        await userAdminService.storeValidationToken(userData.email, validationToken);
+        await userAdminService.storeValidationToken(request.email, validationToken);
+        logger.info('Stored validation token for cert-create');
 
-        // Redirect to success page
-        return res.redirect('/validation-success');
+        // Check if this is a browser request or API call (like curl)
+        const acceptsHtml = req.accepts('html');
+        logger.info('Response type check:', { 
+            acceptsHtml, 
+            headers: req.headers,
+            method: req.method
+        });
+
+        if (acceptsHtml) {
+            // Browser request - redirect to success page
+            logger.info('Redirecting to success page');
+            return res.redirect('/request/validation-success');
+        } else {
+            // API call - return JSON response
+            logger.info('Sending JSON success response');
+            return res.json({
+                status: 'success',
+                message: 'Email validated successfully. User account is now active.',
+                username: request.username
+            });
+        }
 
     } catch (error) {
         logger.error('Email validation error:', {
             message: error.message,
             token,
             responseStatus: error.response?.status,
-            responseData: error.response?.data
+            responseData: error.response?.data,
+            stack: error.stack
         });
         
         // Determine the appropriate error message
@@ -58,13 +82,27 @@ async function validateEmail(req, res) {
             message = 'Invalid or expired validation token';
         } else if (error.response?.status === 404) {
             message = 'Request not found';
-        } else if (error.message === 'Request is not in pending status') {
-            message = 'Already Validated';
+        } else if (error.message.includes('Invalid request status')) {
+            message = 'This email has already been validated';
         } else if (error.response?.data?.error) {
             message = error.response.data.error;
         }
-        
-        res.render('validation-error', { error: message });
+
+        // Check if this is a browser request or API call
+        const acceptsHtml = req.accepts('html');
+        if (acceptsHtml) {
+            // Browser request - render error page
+            return res.render('validation-error', { 
+                error: message,
+                showHomeLink: true 
+            });
+        } else {
+            // API call - return JSON error
+            return res.status(400).json({
+                status: 'error',
+                message: message
+            });
+        }
     }
 }
 
