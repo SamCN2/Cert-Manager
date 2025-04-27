@@ -6,25 +6,21 @@ import {inject, Getter} from '@loopback/core';
 import {
   DefaultCrudRepository,
   repository,
-  HasManyThroughRepositoryFactory,
 } from '@loopback/repository';
 import {PostgresDataSource} from '../datasources/postgres.datasource';
-import {Group, GroupRelations, User, UserGroup} from '../models';
+import {Group, GroupRelations, User} from '../models';
 import {UserGroupRepository} from './user-group.repository';
 import {UserRepository} from './user.repository';
+
+export interface GroupWithUsers extends Group {
+  users?: User[];
+}
 
 export class GroupRepository extends DefaultCrudRepository<
   Group,
   typeof Group.prototype.name,
   GroupRelations
 > {
-  public readonly users: HasManyThroughRepositoryFactory<
-    User,
-    typeof User.prototype.username,
-    UserGroup,
-    typeof Group.prototype.name
-  >;
-
   constructor(
     @inject('datasources.postgres') dataSource: PostgresDataSource,
     @repository.getter('UserGroupRepository')
@@ -33,14 +29,6 @@ export class GroupRepository extends DefaultCrudRepository<
     protected userRepositoryGetter: Getter<UserRepository>,
   ) {
     super(Group, dataSource);
-
-    this.users = this.createHasManyThroughRepositoryFactoryFor(
-      'users',
-      userRepositoryGetter,
-      userGroupRepositoryGetter,
-    );
-
-    this.registerInclusionResolver('users', this.users.inclusionResolver);
   }
 
   /**
@@ -48,10 +36,10 @@ export class GroupRepository extends DefaultCrudRepository<
    */
   async createWithUsers(
     groupData: Pick<Group, 'name' | 'displayName' | 'description' | 'responsibleParty'>,
-    usernames: string[],
+    userIds: string[],
     responsibleParty: string,
-  ): Promise<Group> {
-    const now = new Date().toISOString();
+  ): Promise<GroupWithUsers> {
+    const now = new Date();
     const group = new Group({
       ...groupData,
       createdAt: now,
@@ -59,12 +47,12 @@ export class GroupRepository extends DefaultCrudRepository<
     
     const createdGroup = await this.create(group);
 
-    if (usernames.length > 0) {
+    if (userIds.length > 0) {
       const userGroupRepo = await this.userGroupRepositoryGetter();
       await Promise.all(
-        usernames.map(username =>
+        userIds.map(userId =>
           userGroupRepo.create({
-            username,
+            userId,
             groupName: createdGroup.name,
             responsibleParty,
             createdAt: now,
@@ -73,9 +61,7 @@ export class GroupRepository extends DefaultCrudRepository<
       );
     }
 
-    return this.findById(createdGroup.name, {
-      include: [{relation: 'users'}],
-    });
+    return this.findByNameWithUsers(createdGroup.name);
   }
 
   /**
@@ -83,7 +69,7 @@ export class GroupRepository extends DefaultCrudRepository<
    */
   async updateUsers(
     groupName: string,
-    usernames: string[],
+    userIds: string[],
     responsibleParty: string,
   ): Promise<void> {
     const userGroupRepo = await this.userGroupRepositoryGetter();
@@ -92,12 +78,12 @@ export class GroupRepository extends DefaultCrudRepository<
     await userGroupRepo.deleteAll({groupName});
 
     // Add new user memberships
-    if (usernames.length > 0) {
-      const now = new Date().toISOString();
+    if (userIds.length > 0) {
+      const now = new Date();
       await Promise.all(
-        usernames.map(username =>
+        userIds.map(userId =>
           userGroupRepo.create({
-            username,
+            userId,
             groupName,
             responsibleParty,
             createdAt: now,
@@ -105,5 +91,22 @@ export class GroupRepository extends DefaultCrudRepository<
         ),
       );
     }
+  }
+
+  /**
+   * Find group by name with users
+   */
+  async findByNameWithUsers(
+    name: string,
+  ): Promise<GroupWithUsers> {
+    const group = await this.findById(name);
+    const userGroupRepo = await this.userGroupRepositoryGetter();
+    const userRepo = await this.userRepositoryGetter();
+    const userGroups = await userGroupRepo.find({where: {groupName: name}});
+    const users = await Promise.all(
+      userGroups.map(ug => userRepo.findById(ug.userId))
+    );
+
+    return Object.assign(group, { users });
   }
 } 

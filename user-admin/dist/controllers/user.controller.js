@@ -28,7 +28,20 @@ let UserController = class UserController {
         if (existingUser) {
             throw new rest_1.HttpErrors.Conflict(`User with username ${userData.username} already exists`);
         }
-        return this.userRepository.createWithGroups(userData, (_a = userData.groupNames) !== null && _a !== void 0 ? _a : [], userData.responsibleParty);
+        // Get the request to copy its ID
+        const request = await this.requestRepository.findOne({
+            where: { username: userData.username },
+        });
+        if (!(request === null || request === void 0 ? void 0 : request.id)) {
+            throw new rest_1.HttpErrors.NotFound(`No request found for username ${userData.username}`);
+        }
+        const now = new Date();
+        return this.userRepository.createWithGroups({
+            ...userData,
+            id: request.id,
+            status: 'pending',
+            createdAt: now,
+        }, (_a = userData.groupNames) !== null && _a !== void 0 ? _a : [], userData.responsibleParty);
     }
     async count(where) {
         return this.userRepository.count(where);
@@ -64,47 +77,28 @@ let UserController = class UserController {
             throw new rest_1.HttpErrors.InternalServerError('Database error while checking username availability');
         }
     }
-    async findById(username, filter) {
-        return this.userRepository.findById(username, filter);
+    async findById(id, filter) {
+        return this.userRepository.findById(id, filter);
     }
-    async updateById(username, user) {
+    async updateById(id, user) {
         var _a, _b;
-        const now = new Date().toISOString();
-        // Update user details if provided
-        if (user.displayName) {
-            await this.userRepository.updateById(username, {
-                ...user,
-                lastModifiedAt: now,
-                lastModifiedBy: (_a = user.lastModifiedBy) !== null && _a !== void 0 ? _a : 'system',
-            });
-        }
-        // Update group memberships if provided
-        if (user.groupNames) {
-            await this.userRepository.updateGroups(username, user.groupNames, (_b = user.lastModifiedBy) !== null && _b !== void 0 ? _b : 'system');
+        const groupNames = user.groupNames;
+        delete user.groupNames;
+        await this.userRepository.updateById(id, user);
+        if (groupNames !== undefined) {
+            await this.userRepository.updateGroups(id, groupNames, (_b = (_a = user.lastModifiedBy) === null || _a === void 0 ? void 0 : _a.toString()) !== null && _b !== void 0 ? _b : 'system');
         }
     }
-    async deleteById(username) {
-        await this.userRepository.deleteById(username);
+    async deleteById(id) {
+        await this.userRepository.deleteById(id);
     }
-    async validateEmail(username, data) {
-        try {
-            // Find the user
-            const user = await this.userRepository.findById(username);
-            if (!user) {
-                throw new rest_1.HttpErrors.NotFound(`User ${username} not found`);
-            }
-            // Update the email
-            await this.userRepository.updateById(username, {
-                email: data.email,
-                lastModifiedAt: new Date().toISOString(),
-                lastModifiedBy: 'email-validation'
-            });
-            return { success: true };
-        }
-        catch (error) {
-            console.error('Error updating user email:', error);
-            throw new rest_1.HttpErrors.InternalServerError('Error updating user email');
-        }
+    async validateEmail(id, data) {
+        await this.userRepository.updateById(id, {
+            email: data.email,
+            lastModifiedAt: new Date(),
+            lastModifiedBy: 'system',
+        });
+        return { success: true };
     }
 };
 exports.UserController = UserController;
@@ -204,7 +198,7 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:returntype", Promise)
 ], UserController.prototype, "checkUsername", null);
 tslib_1.__decorate([
-    (0, rest_1.get)('/users/{username}'),
+    (0, rest_1.get)('/users/{id}'),
     (0, rest_1.response)(200, {
         description: 'User model instance',
         content: {
@@ -213,18 +207,18 @@ tslib_1.__decorate([
             },
         },
     }),
-    tslib_1.__param(0, rest_1.param.path.string('username')),
+    tslib_1.__param(0, rest_1.param.path.string('id')),
     tslib_1.__param(1, rest_1.param.filter(models_1.User, { exclude: 'where' })),
     tslib_1.__metadata("design:type", Function),
     tslib_1.__metadata("design:paramtypes", [String, Object]),
     tslib_1.__metadata("design:returntype", Promise)
 ], UserController.prototype, "findById", null);
 tslib_1.__decorate([
-    (0, rest_1.patch)('/users/{username}'),
+    (0, rest_1.patch)('/users/{id}'),
     (0, rest_1.response)(204, {
         description: 'User PATCH success',
     }),
-    tslib_1.__param(0, rest_1.param.path.string('username')),
+    tslib_1.__param(0, rest_1.param.path.string('id')),
     tslib_1.__param(1, (0, rest_1.requestBody)({
         content: {
             'application/json': {
@@ -252,19 +246,19 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:returntype", Promise)
 ], UserController.prototype, "updateById", null);
 tslib_1.__decorate([
-    (0, rest_1.del)('/users/{username}'),
+    (0, rest_1.del)('/users/{id}'),
     (0, rest_1.response)(204, {
         description: 'User DELETE success',
     }),
-    tslib_1.__param(0, rest_1.param.path.string('username')),
+    tslib_1.__param(0, rest_1.param.path.string('id')),
     tslib_1.__metadata("design:type", Function),
     tslib_1.__metadata("design:paramtypes", [String]),
     tslib_1.__metadata("design:returntype", Promise)
 ], UserController.prototype, "deleteById", null);
 tslib_1.__decorate([
-    (0, rest_1.patch)('/users/{username}/validate-email'),
+    (0, rest_1.patch)('/users/{id}/validate-email'),
     (0, rest_1.response)(200, {
-        description: 'Update user email after validation',
+        description: 'User email validation success',
         content: {
             'application/json': {
                 schema: {
@@ -278,7 +272,7 @@ tslib_1.__decorate([
             }
         }
     }),
-    tslib_1.__param(0, rest_1.param.path.string('username')),
+    tslib_1.__param(0, rest_1.param.path.string('id')),
     tslib_1.__param(1, (0, rest_1.requestBody)({
         content: {
             'application/json': {

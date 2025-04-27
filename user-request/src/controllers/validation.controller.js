@@ -30,13 +30,40 @@ async function validateEmail(req, res) {
     logger.info('Starting email validation:', { token });
     
     try {
-        // Validate the email token and get the updated request
-        const request = await userAdminService.validateEmailToken(token);
-        logger.info('Email validation successful:', { 
+        // Find the request by challenge token
+        const request = await userAdminService.findRequestByChallenge(token);
+        logger.info('Found request:', { 
             requestId: request.id,
             username: request.username,
             status: request.status
         });
+
+        if (request.status === 'completed') {
+            logger.info('Request already validated:', { requestId: request.id });
+            const message = 'This email has already been validated';
+            
+            // Check if this is a browser request or API call
+            const acceptsHtml = req.accepts('html');
+            if (acceptsHtml) {
+                return res.render('validation-error', { 
+                    error: message,
+                    showHomeLink: true 
+                });
+            } else {
+                return res.status(400).json({
+                    status: 'error',
+                    message: message
+                });
+            }
+        }
+
+        // Create the user from the request (while still pending)
+        const userData = await userAdminService.createUserFromRequest(request);
+        logger.info('Created user:', { username: userData.username });
+
+        // Update request status to completed
+        await userAdminService.updateRequestStatus(request.id, 'completed');
+        logger.info('Updated request status to completed');
 
         // Generate a new validation token for cert-create
         const validationToken = generateValidationToken(request.email);
@@ -45,7 +72,7 @@ async function validateEmail(req, res) {
         await userAdminService.storeValidationToken(request.email, validationToken);
         logger.info('Stored validation token for cert-create');
 
-        // Check if this is a browser request or API call (like curl)
+        // Check if this is a browser request or API call
         const acceptsHtml = req.accepts('html');
         logger.info('Response type check:', { 
             acceptsHtml, 

@@ -8,10 +8,9 @@ export declare class Group extends Entity {
     displayName: string;
     responsibleParty: string;
     description?: string;
-    createdAt: string;
-    lastModifiedAt?: string;
+    createdAt: Date;
+    lastModifiedAt?: Date;
     lastModifiedBy?: string;
-    users: User[];
     constructor(data?: Partial<Group>);
 }
 export interface GroupRelations {

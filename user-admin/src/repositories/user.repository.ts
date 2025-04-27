@@ -6,56 +6,65 @@ import {inject, Getter} from '@loopback/core';
 import {
   DefaultCrudRepository,
   repository,
-  HasManyThroughRepositoryFactory,
 } from '@loopback/repository';
+import {HttpErrors} from '@loopback/rest';
 import {PostgresDataSource} from '../datasources/postgres.datasource';
-import {User, UserRelations, Group, UserGroup} from '../models';
+import {User, UserRelations, Group} from '../models';
 import {UserGroupRepository} from './user-group.repository';
 import {GroupRepository} from './group.repository';
+import {RequestRepository} from './request.repository';
+
+export interface UserWithGroups extends User {
+  groups?: Group[];
+}
 
 export class UserRepository extends DefaultCrudRepository<
   User,
-  typeof User.prototype.username,
+  typeof User.prototype.id,
   UserRelations
 > {
-  public readonly groups: HasManyThroughRepositoryFactory<
-    Group,
-    typeof Group.prototype.name,
-    UserGroup,
-    typeof User.prototype.username
-  >;
-
   constructor(
     @inject('datasources.postgres') dataSource: PostgresDataSource,
     @repository.getter('UserGroupRepository')
     protected userGroupRepositoryGetter: Getter<UserGroupRepository>,
     @repository.getter('GroupRepository')
     protected groupRepositoryGetter: Getter<GroupRepository>,
+    @repository.getter('RequestRepository')
+    protected requestRepositoryGetter: Getter<RequestRepository>,
   ) {
     super(User, dataSource);
+  }
 
-    this.groups = this.createHasManyThroughRepositoryFactoryFor(
-      'groups',
-      groupRepositoryGetter,
-      userGroupRepositoryGetter,
-    );
+  /**
+   * Override create to ensure users can only be created from requests
+   */
+  async create(entity: Partial<User>, options?: object): Promise<User> {
+    const requestRepo = await this.requestRepositoryGetter();
+    const request = await requestRepo.findOne({
+      where: {
+        username: entity.username,
+        id: entity.id,
+      },
+    });
 
-    this.registerInclusionResolver('groups', this.groups.inclusionResolver);
+    if (!request) {
+      throw new HttpErrors.UnprocessableEntity(
+        `Cannot create user without a corresponding request. No request found for username ${entity.username} and id ${entity.id}`,
+      );
+    }
+
+    return super.create(entity, options);
   }
 
   /**
    * Create a new user with optional group assignments
    */
   async createWithGroups(
-    userData: Pick<User, 'username' | 'displayName' | 'responsibleParty'>,
+    userData: Pick<User, 'id' | 'username' | 'displayName' | 'responsibleParty' | 'createdAt' | 'status'>,
     groupNames: string[],
     responsibleParty: string,
-  ): Promise<User> {
-    const now = new Date();
-    const user = new User({
-      ...userData,
-      createdAt: now,
-    });
+  ): Promise<UserWithGroups> {
+    const user = new User(userData);
     
     const createdUser = await this.create(user);
 
@@ -64,32 +73,42 @@ export class UserRepository extends DefaultCrudRepository<
       await Promise.all(
         groupNames.map(groupName =>
           userGroupRepo.create({
+            userId: createdUser.id,
             username: createdUser.username,
             groupName,
             responsibleParty,
-            createdAt: now,
+            createdAt: userData.createdAt,
           }),
         ),
       );
     }
 
-    return this.findById(createdUser.username, {
-      include: [{relation: 'groups'}],
-    });
+    // Get the user's groups manually
+    const userGroupRepo = await this.userGroupRepositoryGetter();
+    const groupRepo = await this.groupRepositoryGetter();
+    const userGroups = await userGroupRepo.find({where: {userId: createdUser.id}});
+    const groups = await Promise.all(
+      userGroups.map(ug => groupRepo.findById(ug.groupName))
+    );
+
+    return Object.assign(createdUser, { groups });
   }
 
   /**
    * Update user's group memberships
    */
   async updateGroups(
-    username: string,
+    userId: string,
     groupNames: string[],
     responsibleParty: string,
   ): Promise<void> {
     const userGroupRepo = await this.userGroupRepositoryGetter();
     
+    // Get the user to access their username
+    const user = await this.findById(userId);
+    
     // Remove existing group memberships
-    await userGroupRepo.deleteAll({username});
+    await userGroupRepo.deleteAll({userId});
 
     // Add new group memberships
     if (groupNames.length > 0) {
@@ -97,7 +116,8 @@ export class UserRepository extends DefaultCrudRepository<
       await Promise.all(
         groupNames.map(groupName =>
           userGroupRepo.create({
-            username,
+            userId,
+            username: user.username,
             groupName,
             responsibleParty,
             createdAt: now,
@@ -105,5 +125,22 @@ export class UserRepository extends DefaultCrudRepository<
         ),
       );
     }
+  }
+
+  /**
+   * Find user by ID with groups
+   */
+  async findByIdWithGroups(
+    id: string,
+  ): Promise<UserWithGroups> {
+    const user = await this.findById(id);
+    const userGroupRepo = await this.userGroupRepositoryGetter();
+    const groupRepo = await this.groupRepositoryGetter();
+    const userGroups = await userGroupRepo.find({where: {userId: id}});
+    const groups = await Promise.all(
+      userGroups.map(ug => groupRepo.findById(ug.groupName))
+    );
+
+    return Object.assign(user, { groups });
   }
 } 

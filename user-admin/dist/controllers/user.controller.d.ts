@@ -21,12 +21,12 @@ export declare class UserController {
     checkUsername(username: string): Promise<{
         available: boolean;
     }>;
-    findById(username: string, filter?: FilterExcludingWhere<User>): Promise<User>;
-    updateById(username: string, user: Partial<User> & {
+    findById(id: string, filter?: FilterExcludingWhere<User>): Promise<User>;
+    updateById(id: string, user: Partial<User> & {
         groupNames?: string[];
     }): Promise<void>;
-    deleteById(username: string): Promise<void>;
-    validateEmail(username: string, data: {
+    deleteById(id: string): Promise<void>;
+    validateEmail(id: string, data: {
         email: string;
     }): Promise<{
         success: boolean;

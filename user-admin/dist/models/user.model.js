@@ -6,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const tslib_1 = require("tslib");
 const repository_1 = require("@loopback/repository");
-const group_model_1 = require("./group.model");
-const user_group_model_1 = require("./user-group.model");
 let User = class User extends repository_1.Entity {
     constructor(data) {
         super(data);
@@ -19,6 +17,17 @@ tslib_1.__decorate([
         type: 'string',
         id: true,
         generated: false,
+        required: true,
+        postgresql: {
+            columnName: 'id',
+            dataType: 'uuid',
+        }
+    }),
+    tslib_1.__metadata("design:type", String)
+], User.prototype, "id", void 0);
+tslib_1.__decorate([
+    (0, repository_1.property)({
+        type: 'string',
         required: true,
         postgresql: {
             columnName: 'username',
@@ -104,16 +113,6 @@ tslib_1.__decorate([
     }),
     tslib_1.__metadata("design:type", String)
 ], User.prototype, "status", void 0);
-tslib_1.__decorate([
-    (0, repository_1.hasMany)(() => group_model_1.Group, {
-        through: {
-            model: () => user_group_model_1.UserGroup,
-            keyFrom: 'username',
-            keyTo: 'groupName',
-        }
-    }),
-    tslib_1.__metadata("design:type", Array)
-], User.prototype, "groups", void 0);
 exports.User = User = tslib_1.__decorate([
     (0, repository_1.model)({
         settings: {

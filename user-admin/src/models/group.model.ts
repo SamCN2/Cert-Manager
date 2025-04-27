@@ -2,9 +2,8 @@
  * Copyright (c) 2025 ogt11.com, llc
  */
 
-import {Entity, model, property, hasMany} from '@loopback/repository';
+import {Entity, model, property} from '@loopback/repository';
 import {User} from './user.model';
-import {UserGroup} from './user-group.model';
 
 @model({
   settings: {
@@ -71,7 +70,7 @@ export class Group extends Entity {
       dataType: 'timestamp with time zone',
     }
   })
-  createdAt: string;
+  createdAt: Date;
 
   @property({
     type: 'date',
@@ -81,7 +80,7 @@ export class Group extends Entity {
       dataType: 'timestamp with time zone',
     }
   })
-  lastModifiedAt?: string;
+  lastModifiedAt?: Date;
 
   @property({
     type: 'string',
@@ -92,15 +91,6 @@ export class Group extends Entity {
     }
   })
   lastModifiedBy?: string;
-
-  @hasMany(() => User, {
-    through: {
-      model: () => UserGroup,
-      keyFrom: 'groupName',
-      keyTo: 'username'
-    }
-  })
-  users: User[];
 
   constructor(data?: Partial<Group>) {
     super(data);

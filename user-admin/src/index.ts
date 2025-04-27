@@ -2,8 +2,8 @@ export * from './application';
 export * from './models';
 export * from './repositories';
 
-import {UserAdminApplication} from './application';
-export async function main(options: any = {}) {
+import {UserAdminApplication, ApplicationConfig} from './application';
+export async function main(options: ApplicationConfig = {}) {
   const app = new UserAdminApplication(options);
   await app.boot();
   await app.start();

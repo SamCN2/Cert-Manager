@@ -100,8 +100,25 @@ export class UserController {
       );
     }
 
+    // Get the request to copy its ID
+    const request = await this.requestRepository.findOne({
+      where: {username: userData.username},
+    });
+
+    if (!request?.id) {
+      throw new HttpErrors.NotFound(
+        `No request found for username ${userData.username}`,
+      );
+    }
+
+    const now = new Date();
     return this.userRepository.createWithGroups(
-      userData,
+      {
+        ...userData,
+        id: request.id,
+        status: 'pending',
+        createdAt: now,
+      },
       userData.groupNames ?? [],
       userData.responsibleParty,
     );
@@ -181,7 +198,7 @@ export class UserController {
     }
   }
 
-  @get('/users/{username}')
+  @get('/users/{id}')
   @response(200, {
     description: 'User model instance',
     content: {
@@ -191,19 +208,19 @@ export class UserController {
     },
   })
   async findById(
-    @param.path.string('username') username: string,
+    @param.path.string('id') id: string,
     @param.filter(User, {exclude: 'where'})
     filter?: FilterExcludingWhere<User>,
   ): Promise<User> {
-    return this.userRepository.findById(username, filter);
+    return this.userRepository.findById(id, filter);
   }
 
-  @patch('/users/{username}')
+  @patch('/users/{id}')
   @response(204, {
     description: 'User PATCH success',
   })
   async updateById(
-    @param.path.string('username') username: string,
+    @param.path.string('id') id: string,
     @requestBody({
       content: {
         'application/json': {
@@ -228,38 +245,31 @@ export class UserController {
     })
     user: Partial<User> & {groupNames?: string[]},
   ): Promise<void> {
-    const now = new Date().toISOString();
-    
-    // Update user details if provided
-    if (user.displayName) {
-      await this.userRepository.updateById(username, {
-        ...user,
-        lastModifiedAt: now,
-        lastModifiedBy: user.lastModifiedBy ?? 'system',
-      });
-    }
+    const groupNames = user.groupNames;
+    delete user.groupNames;
 
-    // Update group memberships if provided
-    if (user.groupNames) {
+    await this.userRepository.updateById(id, user);
+
+    if (groupNames !== undefined) {
       await this.userRepository.updateGroups(
-        username,
-        user.groupNames,
-        user.lastModifiedBy ?? 'system',
+        id,
+        groupNames,
+        user.lastModifiedBy?.toString() ?? 'system',
       );
     }
   }
 
-  @del('/users/{username}')
+  @del('/users/{id}')
   @response(204, {
     description: 'User DELETE success',
   })
-  async deleteById(@param.path.string('username') username: string): Promise<void> {
-    await this.userRepository.deleteById(username);
+  async deleteById(@param.path.string('id') id: string): Promise<void> {
+    await this.userRepository.deleteById(id);
   }
 
-  @patch('/users/{username}/validate-email')
+  @patch('/users/{id}/validate-email')
   @response(200, {
-    description: 'Update user email after validation',
+    description: 'User email validation success',
     content: {
       'application/json': {
         schema: {
@@ -274,7 +284,7 @@ export class UserController {
     }
   })
   async validateEmail(
-    @param.path.string('username') username: string,
+    @param.path.string('id') id: string,
     @requestBody({
       content: {
         'application/json': {
@@ -293,24 +303,12 @@ export class UserController {
     })
     data: {email: string},
   ): Promise<{success: boolean}> {
-    try {
-      // Find the user
-      const user = await this.userRepository.findById(username);
-      if (!user) {
-        throw new HttpErrors.NotFound(`User ${username} not found`);
-      }
+    await this.userRepository.updateById(id, {
+      email: data.email,
+      lastModifiedAt: new Date(),
+      lastModifiedBy: 'system',
+    });
 
-      // Update the email
-      await this.userRepository.updateById(username, {
-        email: data.email,
-        lastModifiedAt: new Date().toISOString(),
-        lastModifiedBy: 'email-validation'
-      });
-
-      return {success: true};
-    } catch (error) {
-      console.error('Error updating user email:', error);
-      throw new HttpErrors.InternalServerError('Error updating user email');
-    }
+    return {success: true};
   }
 } 

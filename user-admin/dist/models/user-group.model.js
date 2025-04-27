@@ -18,6 +18,17 @@ tslib_1.__decorate([
         required: true,
         id: true,
         postgresql: {
+            columnName: 'user_id',
+            dataType: 'uuid',
+        }
+    }),
+    tslib_1.__metadata("design:type", String)
+], UserGroup.prototype, "userId", void 0);
+tslib_1.__decorate([
+    (0, repository_1.property)({
+        type: 'string',
+        required: true,
+        postgresql: {
             columnName: 'username',
             dataType: 'text',
         }
@@ -68,7 +79,7 @@ exports.UserGroup = UserGroup = tslib_1.__decorate([
             indexes: {
                 uniqueUserGroup: {
                     keys: {
-                        username: 1,
+                        userId: 1,
                         groupName: 1
                     },
                     options: {

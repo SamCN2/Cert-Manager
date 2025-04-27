@@ -6,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Group = void 0;
 const tslib_1 = require("tslib");
 const repository_1 = require("@loopback/repository");
-const user_model_1 = require("./user.model");
-const user_group_model_1 = require("./user-group.model");
 let Group = class Group extends repository_1.Entity {
     constructor(data) {
         super(data);
@@ -69,7 +67,7 @@ tslib_1.__decorate([
             dataType: 'timestamp with time zone',
         }
     }),
-    tslib_1.__metadata("design:type", String)
+    tslib_1.__metadata("design:type", Date)
 ], Group.prototype, "createdAt", void 0);
 tslib_1.__decorate([
     (0, repository_1.property)({
@@ -80,7 +78,7 @@ tslib_1.__decorate([
             dataType: 'timestamp with time zone',
         }
     }),
-    tslib_1.__metadata("design:type", String)
+    tslib_1.__metadata("design:type", Date)
 ], Group.prototype, "lastModifiedAt", void 0);
 tslib_1.__decorate([
     (0, repository_1.property)({
@@ -93,16 +91,6 @@ tslib_1.__decorate([
     }),
     tslib_1.__metadata("design:type", String)
 ], Group.prototype, "lastModifiedBy", void 0);
-tslib_1.__decorate([
-    (0, repository_1.hasMany)(() => user_model_1.User, {
-        through: {
-            model: () => user_group_model_1.UserGroup,
-            keyFrom: 'groupName',
-            keyTo: 'username'
-        }
-    }),
-    tslib_1.__metadata("design:type", Array)
-], Group.prototype, "users", void 0);
 exports.Group = Group = tslib_1.__decorate([
     (0, repository_1.model)({
         settings: {

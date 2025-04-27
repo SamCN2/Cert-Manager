@@ -14,49 +14,56 @@ let GroupRepository = class GroupRepository extends repository_1.DefaultCrudRepo
         super(models_1.Group, dataSource);
         this.userGroupRepositoryGetter = userGroupRepositoryGetter;
         this.userRepositoryGetter = userRepositoryGetter;
-        this.users = this.createHasManyThroughRepositoryFactoryFor('users', userRepositoryGetter, userGroupRepositoryGetter);
-        this.registerInclusionResolver('users', this.users.inclusionResolver);
     }
     /**
      * Create a new group with optional user assignments
      */
-    async createWithUsers(groupData, usernames, responsibleParty) {
-        const now = new Date().toISOString();
+    async createWithUsers(groupData, userIds, responsibleParty) {
+        const now = new Date();
         const group = new models_1.Group({
             ...groupData,
             createdAt: now,
         });
         const createdGroup = await this.create(group);
-        if (usernames.length > 0) {
+        if (userIds.length > 0) {
             const userGroupRepo = await this.userGroupRepositoryGetter();
-            await Promise.all(usernames.map(username => userGroupRepo.create({
-                username,
+            await Promise.all(userIds.map(userId => userGroupRepo.create({
+                userId,
                 groupName: createdGroup.name,
                 responsibleParty,
                 createdAt: now,
             })));
         }
-        return this.findById(createdGroup.name, {
-            include: [{ relation: 'users' }],
-        });
+        return this.findByNameWithUsers(createdGroup.name);
     }
     /**
      * Update group's user memberships
      */
-    async updateUsers(groupName, usernames, responsibleParty) {
+    async updateUsers(groupName, userIds, responsibleParty) {
         const userGroupRepo = await this.userGroupRepositoryGetter();
         // Remove existing user memberships
         await userGroupRepo.deleteAll({ groupName });
         // Add new user memberships
-        if (usernames.length > 0) {
-            const now = new Date().toISOString();
-            await Promise.all(usernames.map(username => userGroupRepo.create({
-                username,
+        if (userIds.length > 0) {
+            const now = new Date();
+            await Promise.all(userIds.map(userId => userGroupRepo.create({
+                userId,
                 groupName,
                 responsibleParty,
                 createdAt: now,
             })));
         }
+    }
+    /**
+     * Find group by name with users
+     */
+    async findByNameWithUsers(name) {
+        const group = await this.findById(name);
+        const userGroupRepo = await this.userGroupRepositoryGetter();
+        const userRepo = await this.userRepositoryGetter();
+        const userGroups = await userGroupRepo.find({ where: { groupName: name } });
+        const users = await Promise.all(userGroups.map(ug => userRepo.findById(ug.userId)));
+        return Object.assign(group, { users });
     }
 };
 exports.GroupRepository = GroupRepository;

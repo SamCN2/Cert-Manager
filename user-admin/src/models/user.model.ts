@@ -2,9 +2,8 @@
  * Copyright (c) 2025 ogt11.com, llc
  */
 
-import {Entity, model, property, hasMany} from '@loopback/repository';
+import {Entity, model, property} from '@loopback/repository';
 import {Group} from './group.model';
-import {UserGroup} from './user-group.model';
 
 @model({
   settings: {
@@ -25,6 +24,16 @@ export class User extends Entity {
     type: 'string',
     id: true,
     generated: false,
+    required: true,
+    postgresql: {
+      columnName: 'id',
+      dataType: 'uuid',
+    }
+  })
+  id: string;
+
+  @property({
+    type: 'string',
     required: true,
     postgresql: {
       columnName: 'username',
@@ -71,7 +80,7 @@ export class User extends Entity {
       dataType: 'timestamp with time zone',
     }
   })
-  createdAt?: Date;
+  createdAt: Date;
 
   @property({
     type: 'date',
@@ -102,15 +111,6 @@ export class User extends Entity {
     },
   })
   status: string;
-
-  @hasMany(() => Group, {
-    through: {
-      model: () => UserGroup,
-      keyFrom: 'username',
-      keyTo: 'groupName',
-    }
-  })
-  groups: Group[];
 
   constructor(data?: Partial<User>) {
     super(data);

@@ -9,7 +9,7 @@ import {UserGroup, UserGroupRelations} from '../models';
 
 export class UserGroupRepository extends DefaultCrudRepository<
   UserGroup,
-  typeof UserGroup.prototype.username,
+  typeof UserGroup.prototype.userId,
   UserGroupRelations
 > {
   constructor(

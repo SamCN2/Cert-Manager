@@ -272,6 +272,5 @@ declare const UserAdminApplication_base: (new (...args: any[]) => {
 }) & typeof RestApplication;
 export declare class UserAdminApplication extends UserAdminApplication_base {
     constructor(options?: ApplicationConfig);
-    migrate(): Promise<void>;
     boot(): Promise<void>;
 }

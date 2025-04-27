@@ -210,8 +210,9 @@ export class RequestController {
         throw new HttpErrors.BadRequest('User data does not match request');
       }
 
-      // Create the user
+      // Create the user with the same ID as the request
       await this.userRepository.create({
+        id: request.id, // Copy the request ID to the user
         username: userData.username,
         displayName: userData.displayName,
         email: userData.email,

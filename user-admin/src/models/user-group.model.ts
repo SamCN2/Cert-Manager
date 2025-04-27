@@ -3,6 +3,8 @@
  */
 
 import {Entity, model, property} from '@loopback/repository';
+import {User} from './user.model';
+import {Group} from './group.model';
 
 @model({
   settings: {
@@ -13,7 +15,7 @@ import {Entity, model, property} from '@loopback/repository';
     indexes: {
       uniqueUserGroup: {
         keys: {
-          username: 1,
+          userId: 1,
           groupName: 1
         },
         options: {
@@ -28,6 +30,16 @@ export class UserGroup extends Entity {
     type: 'string',
     required: true,
     id: true,
+    postgresql: {
+      columnName: 'user_id',
+      dataType: 'uuid',
+    }
+  })
+  userId: string;
+
+  @property({
+    type: 'string',
+    required: true,
     postgresql: {
       columnName: 'username',
       dataType: 'text',
@@ -72,7 +84,8 @@ export class UserGroup extends Entity {
 }
 
 export interface UserGroupRelations {
-  // describe navigational properties here
+  user?: User;
+  group?: Group;
 }
 
 export type UserGroupWithRelations = UserGroup & UserGroupRelations; 

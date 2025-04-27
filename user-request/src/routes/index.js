@@ -131,8 +131,8 @@ router.get('/validate', (req, res) => {
   res.render('validate-form', { title: 'Validate Email' });
 });
 
-// POST handler for manual token validation
-router.post('/validate', async (req, res) => {
+// POST handler for manual token validation - handle both paths
+router.post(['/validate', '/request/validate'], async (req, res) => {
   const { token } = req.body;
   if (!token) {
     return res.render('validation-error', { error: 'Validation token is required.' });

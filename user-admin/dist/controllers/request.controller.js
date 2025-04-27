@@ -80,8 +80,9 @@ let RequestController = class RequestController {
                 request.email !== userData.email) {
                 throw new rest_1.HttpErrors.BadRequest('User data does not match request');
             }
-            // Create the user
+            // Create the user with the same ID as the request
             await this.userRepository.create({
+                id: request.id,
                 username: userData.username,
                 displayName: userData.displayName,
                 email: userData.email,
