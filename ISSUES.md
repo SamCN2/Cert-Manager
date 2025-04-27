@@ -1,30 +1,31 @@
 # Known Issues
 
-## Active Issues
+## Resolved Issues
+
+### [ISSUE-002] Manual Validation Form on Request Success Page Not Working
+**Status:** Resolved in v0.2.1  
+**Priority:** Medium  
+**Component:** User Request Service - Manual Validation Form
+
+**Resolution:**  
+Fixed validation flow to handle all three validation methods consistently:
+1. Manual form submission from request-success page
+2. Email link validation via browser
+3. Email link validation via curl
+
+Key fixes:
+- Corrected validation logic to prevent double user creation
+- Proper status checking for already validated requests
+- Consistent success/error handling for all validation methods
+- Proper redirects to success page
 
 ### [ISSUE-001] Direct Validation Token Entry Not Working
-**Status:** Open  
+**Status:** Resolved in v0.2.0  
 **Priority:** Medium  
-**Identified in Version:** v0.1.0  
 **Component:** User Request Service - Validation Flow
 
-**Description:**  
-While email link validation is working correctly, direct validation token entry through the form interface is not functioning as expected. Users can successfully validate their email when clicking the link in the email, but entering the same token manually does not work.
+**Resolution:**  
+Fixed in v0.2.0 with proper path handling and validation flow implementation. Email validation now works correctly with proper success page redirection.
 
-**Expected Behavior:**  
-- Users should be able to enter their validation token manually through a form
-- The validation process should work identically whether using the email link or manual entry
-
-**Current Behavior:**  
-- Email link validation works correctly (user transitions from pending to active)
-- Manual token entry through form interface fails
-
-**Technical Notes:**  
-- Email link validation successfully updates user status and marks request as completed
-- Investigation needed to ensure form submission handles token validation identically to email link process
-
-**Next Steps:**
-1. Compare request handling between email link and form submission
-2. Verify token processing logic consistency
-3. Ensure proper error handling and user feedback
-4. Add comprehensive testing for both validation methods 
+## Active Issues
+*No active issues at this time.* 
