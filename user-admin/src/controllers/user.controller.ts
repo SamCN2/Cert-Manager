@@ -311,4 +311,71 @@ export class UserController {
 
     return {success: true};
   }
+
+  @post('/api/verify-validation-token')
+  @response(200, {
+    description: 'Verify validation token',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            valid: {
+              type: 'boolean'
+            }
+          }
+        }
+      }
+    }
+  })
+  async verifyValidationToken(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['validationToken'],
+            properties: {
+              validationToken: {
+                type: 'string'
+              }
+            }
+          }
+        }
+      }
+    })
+    data: {validationToken: string},
+  ): Promise<{valid: boolean}> {
+    try {
+      // Find request by challenge token
+      const request = await this.requestRepository.findOne({
+        where: {
+          challenge: data.validationToken
+        }
+      });
+
+      if (!request) {
+        return {valid: false};
+      }
+
+      // Check if token is expired (24 hours)
+      const tokenCreatedAt = request.createdAt;
+      if (!tokenCreatedAt) {
+        return {valid: false};
+      }
+
+      const now = new Date();
+      const tokenAge = now.getTime() - tokenCreatedAt.getTime();
+      const tokenAgeHours = tokenAge / (1000 * 60 * 60);
+
+      if (tokenAgeHours > 24) {
+        return {valid: false};
+      }
+
+      return {valid: true};
+    } catch (error) {
+      console.error('Error verifying validation token:', error);
+      return {valid: false};
+    }
+  }
 } 

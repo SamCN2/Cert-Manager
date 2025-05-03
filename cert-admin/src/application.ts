@@ -13,6 +13,7 @@ import {RestApplication} from '@loopback/rest';
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {MySequence} from './sequence';
+import {CSRController} from './controllers/csr.controller';
 
 export {ApplicationConfig};
 
@@ -33,6 +34,9 @@ export class CertAdminApplication extends BootMixin(
       path: '/explorer',
     });
     this.component(RestExplorerComponent);
+
+    // Register controllers
+    this.controller(CSRController);
 
     this.projectRoot = __dirname;
     // Customize @loopback/boot Booter Conventions here

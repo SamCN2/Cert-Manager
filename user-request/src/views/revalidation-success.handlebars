@@ -1,0 +1,60 @@
+<!--
+  Copyright (c) 2025 ogt11.com, llc
+-->
+<div class="container">
+    <h1 class="mdc-typography--headline4">Check Your Email</h1>
+    
+    <div class="success-card">
+        <div class="success-icon">
+            <span class="material-icons">mail</span>
+        </div>
+        <h2 class="mdc-typography--headline6">Validation Email Sent</h2>
+        <p>We've sent a validation link to <strong>{{email}}</strong>.</p>
+        <p>Please check your email and click the link to revalidate your identity and request a new certificate.</p>
+        <p>The link will expire in 24 hours.</p>
+    </div>
+    
+    <div class="info-card">
+        <h3 class="mdc-typography--subtitle1">Didn't receive the email?</h3>
+        <p>Check your spam folder or try again with a different email address.</p>
+        <a href="/request/revalidation" class="mdc-button mdc-button--outlined">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Try Again</span>
+        </a>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.success-card {
+    background-color: #e8f5e9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 48px;
+    color: #4caf50;
+    margin-bottom: 1rem;
+}
+
+.info-card {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.mdc-button {
+    margin-top: 1rem;
+}
+</style> 

@@ -100,6 +100,35 @@ let UserController = class UserController {
         });
         return { success: true };
     }
+    async verifyValidationToken(data) {
+        try {
+            // Find request by challenge token
+            const request = await this.requestRepository.findOne({
+                where: {
+                    challenge: data.validationToken
+                }
+            });
+            if (!request) {
+                return { valid: false };
+            }
+            // Check if token is expired (24 hours)
+            const tokenCreatedAt = request.createdAt;
+            if (!tokenCreatedAt) {
+                return { valid: false };
+            }
+            const now = new Date();
+            const tokenAge = now.getTime() - tokenCreatedAt.getTime();
+            const tokenAgeHours = tokenAge / (1000 * 60 * 60);
+            if (tokenAgeHours > 24) {
+                return { valid: false };
+            }
+            return { valid: true };
+        }
+        catch (error) {
+            console.error('Error verifying validation token:', error);
+            return { valid: false };
+        }
+    }
 };
 exports.UserController = UserController;
 tslib_1.__decorate([
@@ -293,6 +322,42 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:paramtypes", [String, Object]),
     tslib_1.__metadata("design:returntype", Promise)
 ], UserController.prototype, "validateEmail", null);
+tslib_1.__decorate([
+    (0, rest_1.post)('/api/verify-validation-token'),
+    (0, rest_1.response)(200, {
+        description: 'Verify validation token',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        valid: {
+                            type: 'boolean'
+                        }
+                    }
+                }
+            }
+        }
+    }),
+    tslib_1.__param(0, (0, rest_1.requestBody)({
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    required: ['validationToken'],
+                    properties: {
+                        validationToken: {
+                            type: 'string'
+                        }
+                    }
+                }
+            }
+        }
+    })),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [Object]),
+    tslib_1.__metadata("design:returntype", Promise)
+], UserController.prototype, "verifyValidationToken", null);
 exports.UserController = UserController = tslib_1.__decorate([
     tslib_1.__param(0, (0, repository_1.repository)(repositories_1.UserRepository)),
     tslib_1.__param(1, (0, repository_1.repository)(repositories_2.RequestRepository)),

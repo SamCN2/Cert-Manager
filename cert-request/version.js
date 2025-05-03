@@ -10,7 +10,7 @@ const crypto = require('crypto');
 function generateVersion() {
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
     const randomBytes = crypto.randomBytes(4).toString('hex');
-    return `cert-create-${timestamp}-${randomBytes}`;
+    return `cert-request-${timestamp}-${randomBytes}`;
 }
 
 // Write version to file and export it

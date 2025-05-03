@@ -37,9 +37,18 @@ export class MySequence implements SequenceHandler {
 
       const route = this.findRoute(request);
       const args = await this.parseParams(request, route);
-      const result = await this.invoke(route, args);
-      this.send(response, result);
+      
+      try {
+        const result = await this.invoke(route, args);
+        this.send(response, result);
+      } catch (invokeError) {
+        console.error('Error in invoke method:', invokeError);
+        console.error('Error stack:', invokeError.stack);
+        throw invokeError;
+      }
     } catch (err) {
+      console.error('Error in sequence:', err);
+      console.error('Error stack:', err.stack);
       this.reject(context, err);
     }
   }

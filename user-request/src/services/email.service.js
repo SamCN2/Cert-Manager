@@ -61,15 +61,18 @@ class EmailService {
   async sendValidationEmail(username, email, token) {
     // Remove trailing /request if it exists in SERVICE_URL
     const baseUrl = (process.env.SERVICE_URL || 'http://localhost:3006').replace(/\/request$/, '');
-    const validationUrl = `${baseUrl}/request/validate/${token}`;
+    const validationUrl = `${baseUrl}/request/${token}`;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    
+    // Use email as username if username is not provided
+    const displayName = username || email.split('@')[0];
 
     const emailContent = {
       from: process.env.EMAIL_FROM || 'noreply@example.com',
       to: email,
       subject: 'Validate your email address',
-      text: `Hello ${username},\n\nPlease validate your email address by clicking the following link:\n${validationUrl}\n\nThis link will expire in 24 hours.\n\nIf you did not request this validation, please ignore this email.\n\nBest regards,\nCertificate Management System`,
-      html: `<h2>Hello ${username},</h2><p>Please validate your email address by clicking the following link:</p><p><a href="${validationUrl}">${validationUrl}</a></p><p>This link will expire in 24 hours.</p><p>If you did not request this validation, please ignore this email.</p><p>Best regards,<br>Certificate Management System</p>`
+      text: `Hello ${displayName},\n\nPlease validate your email address by clicking the following link:\n${validationUrl}\n\nThis link will expire in 24 hours.\n\nIf you did not request this validation, please ignore this email.\n\nBest regards,\nCertificate Management System`,
+      html: `<h2>Hello ${displayName},</h2><p>Please validate your email address by clicking the following link:</p><p><a href="${validationUrl}">${validationUrl}</a></p><p>This link will expire in 24 hours.</p><p>If you did not request this validation, please ignore this email.</p><p>Best regards,<br>Certificate Management System</p>`
     };
 
     try {

@@ -38,6 +38,7 @@ const axios = require('axios');
 const config = require('../config');
 const logger = require('../logger');
 const { v4: uuidv4 } = require('uuid');
+const UserRequestService = require('./user-request.service');
 
 class UserAdminService {
   constructor() {
@@ -45,6 +46,7 @@ class UserAdminService {
     this.baseUrl = config.userAdminUrl.replace(/\/$/, '');
     this.apiPrefix = '/api/user-admin'; // API path prefix
     this.validationTokens = new Map(); // In-memory store for validation tokens
+    this.userRequestService = new UserRequestService();
     logger.info('UserAdminService initialized with baseUrl: ' + this.baseUrl);
   }
 
@@ -67,14 +69,25 @@ class UserAdminService {
    * @param {string} token 
    */
   async storeValidationToken(email, token) {
-    // Store token with 30-minute expiry
-    this.validationTokens.set(token, {
-      email,
-      expires: Date.now() + (30 * 60 * 1000) // 30 minutes
-    });
-
-    // Clean up expired tokens periodically
-    this._cleanupExpiredTokens();
+    try {
+      // Create a new request with the validation token as the challenge
+      const request = await this.userRequestService.createRequest({
+        email,
+        challenge: token,
+        status: 'pending'
+      });
+      
+      logger.info('Stored validation token in request:', {
+        requestId: request.id,
+        email,
+        token
+      });
+      
+      return request;
+    } catch (error) {
+      logger.error('Error storing validation token:', error);
+      throw error;
+    }
   }
 
   /**
@@ -83,20 +96,24 @@ class UserAdminService {
    * @returns {Promise<boolean>}
    */
   async verifyValidationToken(token) {
-    const tokenData = this.validationTokens.get(token);
-    if (!tokenData) {
+    try {
+      // Use the UserRequestService to find the request by challenge token
+      const request = await this.userRequestService.findByChallengeToken(token);
+      if (!request) {
+        return false;
+      }
+
+      // Check if token is expired (24 hours)
+      const tokenAge = Date.now() - new Date(request.createdAt).getTime();
+      if (tokenAge > 24 * 60 * 60 * 1000) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      logger.error('Error verifying validation token:', error);
       return false;
     }
-
-    // Check if token is expired
-    if (Date.now() > tokenData.expires) {
-      this.validationTokens.delete(token);
-      return false;
-    }
-
-    // Token is valid - delete it so it can't be reused
-    this.validationTokens.delete(token);
-    return true;
   }
 
   /**
@@ -137,7 +154,7 @@ class UserAdminService {
       logger.info('validateEmailToken: Starting validation for token:', { token });
       // First find the request by challenge token
       logger.info('validateEmailToken: Finding request by challenge token');
-      const request = await this.findRequestByChallenge(token);
+      const request = await this.findByChallengeToken(token);
       logger.info('validateEmailToken: Found request:', {
         requestId: request?.id,  // Request ID is directly on the object
         username: request?.username,
@@ -368,36 +385,36 @@ class UserAdminService {
    * @param {string} challenge - The challenge token from email validation
    * @returns {Promise<Object>} The request object if found
    */
-  async findRequestByChallenge(challenge) {
+  async findByChallengeToken(token) {
     try {
-      logger.info('findRequestByChallenge: Starting', { challenge });
+      logger.info('findByChallengeToken: Starting', { challenge: token });
       
       // Use _buildUrl for consistency with createPendingUser verification
-      const url = this._buildUrl(`api/requests/findByChallenge/${challenge}`);
-      logger.info('findRequestByChallenge: Attempting request', { 
+      const url = this._buildUrl(`api/requests/findByChallenge/${token}`);
+      logger.info('findByChallengeToken: Attempting request', { 
         url,
-        challenge,
+        challenge: token,
         serviceUrl: config.serviceUrl
       });
       
       const response = await axios.get(url);
-      logger.info('findRequestByChallenge: Request successful', { 
+      logger.info('findByChallengeToken: Request successful', { 
         requestId: response.data?.id,
-        challenge,
+        challenge: token,
         status: response.data?.status,
         username: response.data?.username,
         responseStatus: response.status
       });
       return response.data;
     } catch (error) {
-      logger.error('findRequestByChallenge: Request failed', {
-        challenge,
+      logger.error('findByChallengeToken: Request failed', {
+        challenge: token,
         url: error.config?.url,
         status: error.response?.status,
         data: error.response?.data,
         message: error.message
       });
-      this._handleRequestError(error, 'findRequestByChallenge', { challenge });
+      this._handleRequestError(error, 'findByChallengeToken', { challenge: token });
     }
   }
 
@@ -505,6 +522,131 @@ class UserAdminService {
     const url = `${baseUrl}/api/user-admin/api/requests/${requestId}`;
     const response = await axios.get(url);
     return response.data;
+  }
+
+  /**
+   * Find a user by their validation token
+   * @param {string} token - The validation token
+   * @returns {Promise<Object|null>} - The user object or null if not found
+   */
+  async findUserByValidationToken(token) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/validation-tokens/${token}/user`);
+      return response.data;
+    } catch (error) {
+      logger.error('Error finding user by validation token:', {
+        error: error.message,
+        stack: error.stack,
+        token
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Find a user by their email address
+   * @param {string} email - The email address to search for
+   * @returns {Promise<Object|null>} - The user object or null if not found
+   */
+  async findUserByEmail(email) {
+    try {
+      logger.info('findUserByEmail: Starting', { email });
+      
+      const url = this._buildUrl(`users/by-email/${encodeURIComponent(email)}`);
+      logger.info('findUserByEmail: Attempting request', { 
+        url,
+        email
+      });
+      
+      const response = await axios.get(url);
+      logger.info('findUserByEmail: Request successful', { 
+        email,
+        userId: response.data?.id,
+        username: response.data?.username,
+        responseStatus: response.status
+      });
+      return response.data;
+    } catch (error) {
+      logger.error('Error finding user by email:', {
+        error: error.message,
+        stack: error.stack,
+        email,
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get user groups by username
+   * @param {string} username - The username to get groups for
+   * @returns {Promise<Array>} - Array of group objects
+   */
+  async getUserGroups(username) {
+    try {
+      logger.info('getUserGroups: Starting', { username });
+      
+      const url = this._buildUrl(`api/users/${username}/groups`);
+      logger.info('getUserGroups: Attempting request', { 
+        url,
+        username,
+        serviceUrl: config.serviceUrl
+      });
+      
+      const response = await axios.get(url);
+      logger.info('getUserGroups: Request successful', { 
+        username,
+        groupCount: response.data?.length || 0,
+        responseStatus: response.status
+      });
+      return response.data || [];
+    } catch (error) {
+      logger.error('getUserGroups: Request failed', {
+        username,
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      // Instead of throwing an error, return an empty array
+      // This allows the flow to continue even if the user has no groups
+      return [];
+    }
+  }
+
+  /**
+   * Get available groups for certificate requests
+   * @returns {Promise<string[]>}
+   */
+  async getAvailableGroups() {
+    try {
+      const response = await axios.get(this._buildUrl('groups/available'));
+      return response.data.groups || [];
+    } catch (error) {
+      logger.error('Error fetching available groups:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get the certificate status for a user
+   * @param {string} username - The username to check
+   * @returns {Promise<Object>} The certificate status object
+   */
+  async getCertificateStatus(username) {
+    try {
+      const response = await this._makeRequest('GET', `/api/users/${username}/certificate-status`);
+      return response.data;
+    } catch (error) {
+      logger.error('Error getting certificate status:', error);
+      return {
+        valid: false,
+        expired: false,
+        invalid: true
+      };
+    }
   }
 }
 

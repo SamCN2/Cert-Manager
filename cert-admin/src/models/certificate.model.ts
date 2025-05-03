@@ -4,14 +4,25 @@
 
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({
+  name: 'certificate',
+  settings: {
+    postgresql: {
+      schema: 'public',
+      table: 'certificate'
+    },
+    strict: true
+  }
+})
 export class Certificate extends Entity {
   @property({
     type: 'string',
     id: true,
+    generated: false,
     postgresql: {
-      dataType: 'text'
-    }
+      columnName: 'serial_number',
+      dataType: 'uuid',
+    },
   })
   serialNumber: string;
 
@@ -19,111 +30,139 @@ export class Certificate extends Entity {
     type: 'string',
     required: true,
     postgresql: {
+      columnName: 'code_version',
       dataType: 'text',
     },
   })
-  codeVersion: string;
+  code_version: string;
 
   @property({
     type: 'string',
     required: true,
+    postgresql: {
+      columnName: 'username',
+      dataType: 'text',
+    },
   })
   username: string;
 
   @property({
     type: 'string',
-  })
-  commonName?: string;
-
-  @property({
-    type: 'string',
-    required: false,
-  })
-  email: string;
-
-  @property({
-    type: 'boolean',
-    required: false,
-    default: false,
-  })
-  emailVerified: boolean;
-
-  @property({
-    type: 'string',
-    required: false,
     postgresql: {
-      columnName: 'email_challenge',
+      columnName: 'commonname',
       dataType: 'text',
-      nullable: true
-    }
+    },
   })
-  emailChallenge?: string;
-
-  @property({
-    type: 'date',
-    required: false,
-    postgresql: {
-      columnName: 'challenge_generated_at',
-      dataType: 'timestamp',
-      nullable: true
-    }
-  })
-  challengeGeneratedAt?: string;
+  commonname?: string;
 
   @property({
     type: 'string',
-    required: false,
+    postgresql: {
+      columnName: 'email',
+      dataType: 'text',
+    },
+  })
+  email?: string;
+
+  @property({
+    type: 'string',
+    required: true,
     postgresql: {
       columnName: 'fingerprint',
       dataType: 'text',
-      nullable: true
-    }
+    },
   })
-  fingerprint?: string;
+  fingerprint: string;
 
   @property({
     type: 'date',
-    required: false,
+    required: true,
+    postgresql: {
+      columnName: 'not_before',
+      dataType: 'timestamp with time zone',
+    },
   })
-  issuedAt: string;
+  not_before: Date;
 
   @property({
     type: 'date',
-    required: false,
+    required: true,
+    postgresql: {
+      columnName: 'not_after',
+      dataType: 'timestamp with time zone',
+    },
   })
-  expiresAt: string;
-
-  @property({
-    type: 'boolean',
-    required: false,
-    default: false,
-  })
-  revoked: boolean;
-
-  @property({
-    type: 'date',
-  })
-  revokedAt?: string;
+  not_after: Date;
 
   @property({
     type: 'string',
-    required: false,
+    required: true,
     postgresql: {
-      columnName: 'revoked_reason',
-      dataType: 'text',
-      nullable: true
-    }
+      columnName: 'userid',
+      dataType: 'uuid',
+    },
   })
-  revokedReason?: string;
+  userid: string;
 
   @property({
-    type: 'array',
-    itemType: 'string',
-    required: false,
-    default: ['user'],
+    type: 'string',
+    required: true,
+    default: 'absent',
+    postgresql: {
+      columnName: 'status',
+      dataType: 'text',
+    },
   })
-  roles: string[];
+  status: 'absent' | 'present' | 'active' | 'revoked';
 
+  @property({
+    type: 'date',
+    postgresql: {
+      columnName: 'revokedat',
+      dataType: 'timestamp with time zone',
+    },
+  })
+  revokedat?: Date;
+
+  @property({
+    type: 'string',
+    postgresql: {
+      columnName: 'roles',
+      dataType: 'text',
+    },
+  })
+  roles?: string;
+
+  @property({
+    type: 'string',
+    postgresql: {
+      columnName: 'revocation_reason',
+      dataType: 'text',
+    },
+  })
+  revocation_reason?: string;
+
+  @property({
+    type: 'date',
+    required: true,
+    default: () => new Date(),
+    postgresql: {
+      columnName: 'createdat',
+      dataType: 'timestamp with time zone',
+    },
+  })
+  createdat: Date;
+
+  @property({
+    type: 'boolean',
+    required: true,
+    default: false,
+    postgresql: {
+      columnName: 'is_first_certificate',
+      dataType: 'boolean',
+    },
+  })
+  is_first_certificate: boolean;
 
   constructor(data?: Partial<Certificate>) {
     super(data);

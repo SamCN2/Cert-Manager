@@ -1,0 +1,78 @@
+<!--
+  Copyright (c) 2025 ogt11.com, llc
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .debug-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{title}}</h1>
+        <p>Redirecting to certificate request form...</p>
+        
+        <form id="redirectForm" action="/request/cert-request/" method="POST">
+            <input type="hidden" name="userData" value="{{userData}}">
+            <input type="hidden" name="validationToken" value="{{validationToken}}">
+            <noscript>
+                <p>Please enable JavaScript to continue. If you cannot enable JavaScript, please contact support.</p>
+                <button type="submit">Continue</button>
+            </noscript>
+        </form>
+
+        {{#if isDebugMode}}
+        <div class="debug-info">
+            <h3>Debug Information:</h3>
+            <p>User Data: {{userData}}</p>
+            <p>Validation Token: {{validationToken}}</p>
+            <p>Redirect URL: {{redirectUrl}}</p>
+        </div>
+        {{/if}}
+    </div>
+
+    <script>
+        // Auto-submit the form after a short delay to allow console logging
+        setTimeout(() => {
+            console.log('Auto-submitting form with data:', {
+                userData: '{{userData}}',
+                validationToken: '{{validationToken}}'
+            });
+            document.getElementById('redirectForm').submit();
+        }, 1000);
+    </script>
+</body>
+</html> 

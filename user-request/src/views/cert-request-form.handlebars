@@ -1,0 +1,182 @@
+<!--
+  Copyright (c) 2025 ogt11.com, llc
+-->
+<div class="container">
+    <h1 class="mdc-typography--headline4">Request Certificate</h1>
+
+    {{#if error}}
+    <div class="error-message">
+        {{error}}
+    </div>
+    {{/if}}
+
+    <!-- Debug information -->
+    <div class="debug-info" style="background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+        <h3>Debug Information</h3>
+        <p>Username: <strong>{{username}}</strong></p>
+        <p>Email: <strong>{{email}}</strong></p>
+        <p>Validation Token: <strong>{{validationToken}}</strong></p>
+    </div>
+
+    <div class="user-info-card">
+        <h2 class="mdc-typography--headline6">User Information</h2>
+        <div class="user-info-row">
+            <span class="user-info-label">Username:</span>
+            <span class="user-info-value">{{username}}</span>
+        </div>
+        <div class="user-info-row">
+            <span class="user-info-label">Email:</span>
+            <span class="user-info-value">{{email}}</span>
+        </div>
+    </div>
+
+    <form id="certRequestForm" class="mdc-form-field">
+        <!-- Hidden fields for form submission -->
+        <input type="hidden" id="username" name="username" value="{{username}}">
+        <input type="hidden" id="email" name="email" value="{{email}}">
+        <input type="hidden" name="validationToken" value="{{validationToken}}">
+
+        <!-- Password field -->
+        <div class="mdc-text-field mdc-text-field--outlined" data-mdc-auto-init="MDCTextField">
+            <input type="password" id="passkey" name="passkey" class="mdc-text-field__input" required>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch">
+                    <label for="passkey" class="mdc-floating-label">Passkey for PKCS#12 file</label>
+                </div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+
+        <div class="group-selection-container">
+            <label class="mdc-floating-label">Group (Optional)</label>
+            <div class="group-list-container">
+                <div class="group-list">
+                    {{#each groups}}
+                    <div class="mdc-form-field">
+                        <div class="mdc-radio">
+                            <input class="mdc-radio__native-control" type="radio" id="group-{{@index}}" name="group" value="{{this}}">
+                            <div class="mdc-radio__background">
+                                <div class="mdc-radio__outer-circle"></div>
+                                <div class="mdc-radio__inner-circle"></div>
+                            </div>
+                        </div>
+                        <label for="group-{{@index}}">{{this}}</label>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status message -->
+        <div id="status" class="status"></div>
+
+        <!-- Submit button -->
+        <button type="submit" class="mdc-button mdc-button--raised">
+            <div class="mdc-button__ripple"></div>
+            <span class="mdc-button__label">Generate Certificate</span>
+        </button>
+    </form>
+</div>
+
+<style>
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.mdc-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.mdc-button {
+    margin-top: 2rem;
+}
+
+.user-info-card {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.user-info-row {
+    display: flex;
+    margin: 0.5rem 0;
+}
+
+.user-info-label {
+    font-weight: 500;
+    width: 100px;
+    color: rgba(0,0,0,0.6);
+}
+
+.user-info-value {
+    font-weight: 400;
+    color: rgba(0,0,0,0.87);
+}
+
+.group-selection-container {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.group-list-container {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.group-list {
+    padding: 0.5rem;
+}
+
+.group-list .mdc-form-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.group-list label {
+    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+.mdc-radio {
+    margin-right: 0.5rem;
+}
+
+.status {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.status.error {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+.status.success {
+    background-color: #e8f5e9;
+    color: #388e3c;
+}
+</style>
+</div> 

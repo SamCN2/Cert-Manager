@@ -5,11 +5,13 @@ const axios = require('axios');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile);
 const mkdir = promisify(fs.mkdir);
+const forge = require('node-forge');
 
 // Configuration
 const CONFIG = {
   certCreateUrl: 'http://localhost:3000/api/sign-certificate',
   certAdminUrl: 'http://localhost:3003',
+  userAdminUrl: 'http://localhost:3004',
   numRequests: 2,
   tempDir: '/tmp/cert-test-node',
   domains: ['example.com', 'test.com', 'demo.com', 'stress.com', 'load.com'],
@@ -168,6 +170,47 @@ function validateCertificate(cert, username, email) {
   }
 }
 
+// Generate PKCS#12 file
+async function generatePKCS12(cert, privateKey, password) {
+  const p12 = forge.pkcs12.toPkcs12Asn1(
+    forge.pki.privateKeyFromPem(privateKey),
+    [forge.pki.certificateFromPem(cert)],
+    password,
+    {
+      generateLocalKeyId: true,
+      algorithm: '3des',
+      iterations: 2048
+    }
+  );
+
+  const p12Der = forge.asn1.toDer(p12).getBytes();
+  const p12Base64 = forge.util.encode64(p12Der);
+  return p12Base64;
+}
+
+// Validate PKCS#12 file
+async function validatePKCS12(p12Base64, password) {
+  const p12Der = forge.util.decode64(p12Base64);
+  const p12Asn1 = forge.asn1.fromDer(p12Der);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password);
+  
+  // Get the key and certificate
+  const keyBag = p12.getBags({bagType: forge.pki.oids.pkcs8ShroudedKeyBag})[forge.pki.oids.pkcs8ShroudedKeyBag];
+  const certBag = p12.getBags({bagType: forge.pki.oids.certBag})[forge.pki.oids.certBag];
+  
+  if (!keyBag || keyBag.length === 0) {
+    throw new Error('No private key found in PKCS#12');
+  }
+  if (!certBag || certBag.length === 0) {
+    throw new Error('No certificate found in PKCS#12');
+  }
+  
+  return {
+    privateKey: forge.pki.privateKeyToPem(keyBag[0].key),
+    certificate: forge.pki.certificateToPem(certBag[0].cert)
+  };
+}
+
 // Make certificate request
 async function requestCertificate(id) {
   try {
@@ -177,12 +220,13 @@ async function requestCertificate(id) {
     const email = `${username}@${domain}`;
 
     // Generate key and CSR
-    const { csr } = await generateKeyAndCSR(username, email, organization);
+    const { privateKey, csr } = await generateKeyAndCSR(username, email, organization);
 
     // Make request to cert-create
     const response = await axios.post(CONFIG.certCreateUrl, {
       csr,
-      userData: { username, email }
+      username,
+      validationToken: null // We're not using validation tokens in the test
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -198,41 +242,45 @@ async function requestCertificate(id) {
 
     // Validate certificate
     validateCertificate(response.data.certificate, username, email);
-    results.validated++;
 
-    // Check database
-    try {
-      const dbResponse = await axios.get(
-        `${CONFIG.certAdminUrl}/certificates/${response.data.serialNumber}`
-      );
-      if (dbResponse.data) {
-        results.inDatabase++;
-      }
-    } catch (dbError) {
-      console.log(`Warning: Certificate not found in database (serial: ${response.data.serialNumber})`);
+    // Generate PKCS#12
+    const password = 'test123';
+    const p12Base64 = await generatePKCS12(response.data.certificate, privateKey, password);
+    
+    // Validate PKCS#12
+    const { privateKey: extractedKey, certificate: extractedCert } = await validatePKCS12(p12Base64, password);
+    
+    // Verify extracted certificate matches original
+    if (extractedCert !== response.data.certificate) {
+      throw new Error('Extracted certificate does not match original');
+    }
+    
+    // Verify extracted key matches original
+    if (extractedKey !== privateKey) {
+      throw new Error('Extracted private key does not match original');
     }
 
-    results.completed++;
+    // Save files for inspection
+    const outputDir = path.join(CONFIG.tempDir, username);
+    await mkdir(outputDir, { recursive: true });
+    
+    await writeFile(path.join(outputDir, 'certificate.pem'), response.data.certificate);
+    await writeFile(path.join(outputDir, 'private-key.pem'), privateKey);
+    await writeFile(path.join(outputDir, 'certificate.p12'), Buffer.from(p12Base64, 'base64'));
+    
+    console.log(`Certificate and PKCS#12 files saved to ${outputDir}`);
+
     return {
-      id,
+      certificate: response.data.certificate,
+      privateKey,
+      p12Base64,
       username,
       email,
-      serialNumber: response.data.serialNumber,
-      success: true
+      serialNumber: response.data.serialNumber
     };
-
   } catch (error) {
-    results.failed++;
-    results.errors.push({
-      id,
-      error: error.message,
-      response: error.response?.data
-    });
-    return {
-      id,
-      error: error.message,
-      success: false
-    };
+    console.error(`Request ${id} failed:`, error);
+    throw error;
   }
 }
 

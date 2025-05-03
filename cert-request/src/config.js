@@ -5,7 +5,7 @@
 const rootConfig = require('../../config');
 
 module.exports = {
-  port: rootConfig.SERVICE_PORTS['cert-create'],
+  port: rootConfig.SERVICE_PORTS['cert-request'],
   baseUrl: rootConfig.BASE_URL,
   serviceUrl: rootConfig.certCreateUrl,
   userAdminUrl: rootConfig.userAdminUrl,

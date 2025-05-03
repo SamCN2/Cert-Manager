@@ -1,0 +1,241 @@
+<!--
+  Copyright (c) 2025 ogt11.com, llc
+-->
+<div class="container">
+    <h1 class="mdc-typography--headline4">Validate Your Email</h1>
+
+    {{#if isDebugMode}}
+    <div class="debug-message">
+        {{debugMessage}}
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="error-message">
+        {{error}}
+    </div>
+    {{/if}}
+
+    {{#if message}}
+    <div class="success-message">
+        {{message}}
+    </div>
+    {{/if}}
+
+    <div class="info-card">
+        <div class="info-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+        </div>
+        <p class="mdc-typography--body1">
+            We've sent a validation email to your inbox. Please check your email and click the validation link.
+        </p>
+        <p class="mdc-typography--body2">
+            If you don't receive the email within a few minutes, please check your spam folder.
+        </p>
+    </div>
+
+    <div class="divider">
+        <span>OR</span>
+    </div>
+
+    <form id="validateForm" class="mdc-form-field" method="POST" action="/request/validate">
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="text" id="token" name="token" class="mdc-text-field__input" required>
+            <label class="mdc-floating-label" for="token">Validation Token</label>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch"></div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+
+        <button type="submit" class="mdc-button mdc-button--raised">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Validate Email</span>
+        </button>
+    </form>
+
+    <!-- Debug form for direct token validation -->
+    <div class="divider">
+        <span>DEBUG</span>
+    </div>
+
+    <form id="debugForm" class="mdc-form-field" method="POST" action="/request/cert-request">
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="text" id="debugToken" name="validationToken" class="mdc-text-field__input" required>
+            <label class="mdc-floating-label" for="debugToken">Validation Token</label>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch"></div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="text" id="debugUsername" name="username" class="mdc-text-field__input" required>
+            <label class="mdc-floating-label" for="debugUsername">Username</label>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch"></div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="email" id="debugEmail" name="email" class="mdc-text-field__input" required>
+            <label class="mdc-floating-label" for="debugEmail">Email</label>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch"></div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+
+        <input type="hidden" id="userData" name="userData" value="">
+        
+        <button type="submit" class="mdc-button mdc-button--raised">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Debug: Go to Cert Request</span>
+        </button>
+    </form>
+
+    <div class="action-links">
+        <a href="/request/revalidate" class="mdc-button mdc-button--outlined">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Request New Validation Email</span>
+        </a>
+        <a href="/" class="mdc-button mdc-button--text">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Return to Home</span>
+        </a>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.mdc-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.success-message {
+    color: #388e3c;
+    background-color: #e8f5e9;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.info-card {
+    background-color: #e3f2fd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.info-icon {
+    color: #1976d2;
+    margin-bottom: 1rem;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.divider span {
+    padding: 0 1rem;
+    color: #757575;
+    font-size: 0.875rem;
+}
+
+.action-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.mdc-button {
+    margin-top: 1rem;
+}
+
+/* Debug section styling */
+#debugForm {
+    background-color: #f5f5f5;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+#debugForm .mdc-button {
+    background-color: #ff9800;
+    color: white;
+}
+
+.debug-message {
+    color: #ff9800;
+    background-color: #fff3e0;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+    border: 1px dashed #ff9800;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle the debug form submission
+    const debugForm = document.getElementById('debugForm');
+    const debugToken = document.getElementById('debugToken');
+    const debugUsername = document.getElementById('debugUsername');
+    const debugEmail = document.getElementById('debugEmail');
+    const userDataInput = document.getElementById('userData');
+    
+    debugForm.addEventListener('submit', function(e) {
+        // Create the userData object
+        const userData = {
+            username: debugUsername.value,
+            email: debugEmail.value,
+            displayName: debugUsername.value
+        };
+        
+        // Set the userData as a JSON string
+        userDataInput.value = JSON.stringify(userData);
+        
+        console.log('Submitting debug form with data:', {
+            userData: userData,
+            validationToken: debugToken.value
+        });
+    });
+});
+</script> 

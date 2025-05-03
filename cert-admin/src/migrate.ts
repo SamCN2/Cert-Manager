@@ -12,7 +12,7 @@ export async function migrate(args: string[]) {
   await app.boot();
   await app.migrateSchema({
     existingSchema,
-    models: ['Certificate']
+    models: ['Certificate', 'CertificateRequest']
   });
 
   // Shutdown application to avoid hanging

@@ -89,8 +89,9 @@
                     window.location.href = '/'; // Redirect to home on error
                 }
             } else {
-                // No pre-filled data, redirect to home
-                window.location.href = '/';
+                // If required params are missing, show a message instead of redirecting
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = 'Missing required parameters. Please complete the email validation process.';
             }
         });
     </script>

@@ -2,7 +2,7 @@
  * Copyright (c) 2025 ogt11.com, llc
  * Central configuration for all certM3 services
  */
-export type ServiceName = 'user-admin' | 'user-request' | 'user-manager' | 'cert-create';
+export type ServiceName = 'user-admin' | 'user-request' | 'user-manager' | 'cert-request';
 
 interface Config {
     BASE_URL: string;

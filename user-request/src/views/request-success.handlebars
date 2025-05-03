@@ -1,30 +1,144 @@
 {{> header}}
 
-<div class="card">
-  <div class="card-body">
-    <h2 class="card-title text-success">Request Submitted!</h2>
-    <p class="card-text">Your account request has been received and is being processed.</p>
-    <hr>
-    <p class="mb-0">You will receive an email notification with a validation link.</p>
-  </div>
+<div class="container">
+    <div class="success-card">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+        </div>
+        <h1 class="mdc-typography--headline4">Account Created Successfully</h1>
+        <p class="mdc-typography--body1">Your account has been created. Please check your email for validation instructions.</p>
+    </div>
+
+    <div class="validation-card">
+        <h2 class="mdc-typography--headline5">Verify Your Email</h2>
+        <p class="mdc-typography--body1">Please enter the validation code sent to your email:</p>
+        
+        <form id="validationForm" class="validation-form" method="POST" action="/request/cert-request">
+            <input type="hidden" id="username" name="username" value="{{username}}">
+            <input type="hidden" id="email" name="email" value="{{email}}">
+            <input type="hidden" id="userData" name="userData" value="">
+            <input type="hidden" id="validationToken" name="validationToken" value="">
+            
+            <div class="mdc-text-field mdc-text-field--outlined" data-mdc-auto-init="MDCTextField">
+                <input type="text" id="token" name="token" class="mdc-text-field__input" required>
+                <div class="mdc-notched-outline">
+                    <div class="mdc-notched-outline__leading"></div>
+                    <div class="mdc-notched-outline__notch">
+                        <label for="token" class="mdc-floating-label">Validation Code</label>
+                    </div>
+                    <div class="mdc-notched-outline__trailing"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="mdc-button mdc-button--raised">
+                <span class="mdc-button__ripple"></span>
+                <span class="mdc-button__label">Verify Email</span>
+            </button>
+        </form>
+    </div>
 </div>
 
-<div class="card mt-4">
-  <div class="card-body">
-    <h4 class="card-title">Validate Your Email</h4>
-    <p>If you've already received the email, you can enter your validation token here:</p>
-    <form method="POST" action="/request/validate">
-      <div class="form-group">
-        <label for="token">Validation Token:</label>
-        <input type="text" class="form-control" id="token" name="token" required>
-      </div>
-      <button type="submit" class="btn btn-success mt-2">Validate Email</button>
-    </form>
-  </div>
-</div>
+<style>
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
 
-<div class="text-center mt-4">
-  <a href="/request/" class="btn btn-primary">Return to Home</a>
-</div>
+.success-card, .validation-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.success-icon {
+    color: #4caf50;
+    margin-bottom: 1rem;
+}
+
+.mdc-typography--headline4, .mdc-typography--headline5 {
+    margin-bottom: 1rem;
+}
+
+.mdc-typography--body1 {
+    margin-bottom: 2rem;
+    color: rgba(0,0,0,0.6);
+}
+
+.validation-form {
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.mdc-text-field {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.mdc-button {
+    margin-top: 1rem;
+    width: 100%;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Material Design Components
+    window.mdc.autoInit();
+
+    const form = document.getElementById('validationForm');
+    const token = document.getElementById('token');
+    const username = document.getElementById('username');
+    const email = document.getElementById('email');
+    const userDataInput = document.getElementById('userData');
+    const validationTokenInput = document.getElementById('validationToken');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+            // First, validate the token
+            const response = await fetch('/request/validate/' + token.value, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            // If validation successful, prepare the user data like the debug form
+            const userData = {
+                username: username.value,
+                email: email.value,
+                displayName: username.value // Using username as display name like debug form
+            };
+
+            // Set the form values
+            userDataInput.value = JSON.stringify(userData);
+            validationTokenInput.value = token.value;
+
+            console.log('Submitting form with data:', {
+                userData: userData,
+                validationToken: token.value
+            });
+
+            // Submit the form
+            form.submit();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error validating email: ' + error.message);
+        }
+    });
+});
+</script>
 
 {{> footer}} 

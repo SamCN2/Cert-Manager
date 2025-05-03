@@ -39,7 +39,8 @@ module.exports = {
         PORT: 3006,
         BASE_URL: BASE_URL,
         SERVICE_URL: `${BASE_URL}/request`,
-        USER_ADMIN_URL: `${BASE_URL}/api/user-admin`
+        USER_ADMIN_URL: `${BASE_URL}/api/user-admin`,
+        CERT_ADMIN_URL: `${BASE_URL}/api/cert-admin`
       },
       error_file: '/var/spool/certM3/logs/user-request-error.log',
       out_file: '/var/spool/certM3/logs/user-request-out.log',
@@ -75,21 +76,21 @@ module.exports = {
       max_restarts: 5
     },
     {
-      name: 'cert-create',
-      cwd: './cert-create',
+      name: 'cert-admin',
+      cwd: './cert-admin',
       script: 'npm',
       args: 'run start',
       interpreter: 'none',
       env: {
         NODE_ENV: 'production',
-        PORT: 3007,
+        PORT: 3000,
         BASE_URL: BASE_URL,
-        SERVICE_URL: `${BASE_URL}/cert-create`,
+        SERVICE_URL: `${BASE_URL}/api/cert-admin`,
         USER_ADMIN_URL: `${BASE_URL}/api/user-admin`
       },
-      error_file: '/var/spool/certM3/logs/cert-create-error.log',
-      out_file: '/var/spool/certM3/logs/cert-create-out.log',
-      log_file: '/var/spool/certM3/logs/cert-create-combined.log',
+      error_file: '/var/spool/certM3/logs/cert-admin-error.log',
+      out_file: '/var/spool/certM3/logs/cert-admin-out.log',
+      log_file: '/var/spool/certM3/logs/cert-admin-combined.log',
       merge_logs: true,
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       exec_mode: 'fork',

@@ -31,5 +31,10 @@ export declare class UserController {
     }): Promise<{
         success: boolean;
     }>;
+    verifyValidationToken(data: {
+        validationToken: string;
+    }): Promise<{
+        valid: boolean;
+    }>;
 }
 export {};

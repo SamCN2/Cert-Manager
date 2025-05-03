@@ -5,7 +5,7 @@
 const express = require('express');
 const path = require('path');
 const handlebars = require('express-handlebars');
-const routes = require('./routes');
+const routes = require('./routes/index');
 
 const app = express();
 const port = process.env.PORT || 3006;
@@ -18,10 +18,18 @@ app.set('views', path.join(__dirname, 'views'));
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from the public directory
+app.use('/request/public', express.static(path.join(__dirname, 'public')));
+
+// Serve JavaScript files
+app.use('/request/js', express.static(path.join(__dirname, 'public/js')));
+
+// Serve CSS files
+app.use('/request/css', express.static(path.join(__dirname, 'public/css')));
 
 // Routes
-app.use('/', routes);
+app.use('/request', routes);
 
 // Error handling
 app.use((err, req, res, next) => {

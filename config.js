@@ -11,7 +11,7 @@ const SERVICE_PORTS = {
     'user-admin': 3004,
     'user-request': 3006,
     'user-manager': 3005,
-    'cert-create': 3007
+    'cert-admin': 3000
 };
 
 const config = {
@@ -21,7 +21,7 @@ const config = {
     userAdminUrl: process.env.USER_ADMIN_URL || `${BASE_URL}/api/user-admin`,
     userRequestUrl: process.env.USER_REQUEST_URL || `${BASE_URL}/request`,
     userManagerUrl: process.env.USER_MANAGER_URL || `${BASE_URL}/manager`,
-    certCreateUrl: process.env.CERT_CREATE_URL || `${BASE_URL}/cert-create`,
+    certAdminUrl: process.env.CERT_ADMIN_URI || `${BASE_URL}/cert-admin`,
     // Helper function to get service URL
     getServiceUrl: (serviceName) => {
         const port = SERVICE_PORTS[serviceName];

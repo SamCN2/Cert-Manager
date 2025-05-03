@@ -9,7 +9,8 @@ module.exports = {
   baseUrl: process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com' : 'http://localhost:3006'),
   serviceUrl: process.env.SERVICE_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com/request' : 'http://localhost:3006'),
   userAdminUrl: process.env.USER_ADMIN_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com' : 'http://localhost:3004'),
-  certCreateUrl: process.env.CERT_CREATE_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com/cert-create' : 'http://localhost:3007'),
+  certRequestUrl: process.env.CERT_REQUEST_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com/cert-request' : 'http://localhost:3007'),
+  certAdminUrl: process.env.CERT_ADMIN_URL || (process.env.NODE_ENV === 'production' ? 'https://urp.ogt11.com/api/cert-admin' : 'http://localhost:3000'),
   validationSecret: process.env.VALIDATION_SECRET || 'development-secret-key',
   
   // SMTP settings

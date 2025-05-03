@@ -15,9 +15,26 @@ function safeStringify(obj) {
   }, 2);
 }
 
+// Filter to reduce verbose error logging
+const errorFilter = winston.format((info) => {
+  if (info.level === 'error') {
+    // Only include essential error information
+    const { message, stack, name, ...rest } = info;
+    return {
+      level: 'error',
+      message,
+      stack: stack ? stack.split('\n')[0] : undefined, // Only first line of stack trace
+      name,
+      ...rest
+    };
+  }
+  return info;
+});
+
 const logger = winston.createLogger({
-  level: 'debug',
+  level: 'info',
   format: winston.format.combine(
+    errorFilter(),
     winston.format.timestamp(),
     winston.format.printf(({ level, message, timestamp, ...rest }) => {
       let details = '';
@@ -51,7 +68,7 @@ const logger = winston.createLogger({
 process.on('unhandledRejection', (error) => {
   logger.error('Unhandled Promise Rejection:', {
     message: error.message,
-    stack: error.stack,
+    stack: error.stack?.split('\n')[0],
     name: error.name
   });
 });
@@ -59,7 +76,7 @@ process.on('unhandledRejection', (error) => {
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', {
     message: error.message,
-    stack: error.stack,
+    stack: error.stack?.split('\n')[0],
     name: error.name
   });
 });

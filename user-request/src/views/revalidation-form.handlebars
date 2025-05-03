@@ -1,0 +1,82 @@
+<!--
+  Copyright (c) 2025 ogt11.com, llc
+-->
+<div class="container">
+    <h1 class="mdc-typography--headline4">Certificate Revalidation</h1>
+    
+    {{#if error}}
+    <div class="error-message">
+        {{error}}
+    </div>
+    {{/if}}
+    
+    <div class="info-card">
+        <h2 class="mdc-typography--headline6">Revalidate Your Certificate</h2>
+        <p>If your certificate has been lost, expired, or revoked, you can request a new one by revalidating your identity.</p>
+        <p>Enter your username and email address below to receive a validation link.</p>
+    </div>
+    
+    <form method="POST" class="mdc-form-field">
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="text" id="username" name="username" class="mdc-text-field__input" value="{{username}}" required>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch">
+                    <label for="username" class="mdc-floating-label">Username</label>
+                </div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+        
+        <div class="mdc-text-field mdc-text-field--outlined">
+            <input type="email" id="email" name="email" class="mdc-text-field__input" value="{{email}}" required>
+            <div class="mdc-notched-outline">
+                <div class="mdc-notched-outline__leading"></div>
+                <div class="mdc-notched-outline__notch">
+                    <label for="email" class="mdc-floating-label">Email</label>
+                </div>
+                <div class="mdc-notched-outline__trailing"></div>
+            </div>
+        </div>
+        
+        <button type="submit" class="mdc-button mdc-button--raised">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Send Validation Link</span>
+        </button>
+    </form>
+</div>
+
+<style>
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.mdc-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.info-card {
+    background-color: #e3f2fd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.mdc-button {
+    margin-top: 2rem;
+}
+</style> 

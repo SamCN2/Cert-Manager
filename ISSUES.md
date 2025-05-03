@@ -28,4 +28,30 @@ Key fixes:
 Fixed in v0.2.0 with proper path handling and validation flow implementation. Email validation now works correctly with proper success page redirection.
 
 ## Active Issues
-*No active issues at this time.* 
+*No active issues at this time.*
+
+# Certificate System Issues
+
+## CSR Field Parameterization
+- [ ] Parameterize all CSR subject fields except CN and E
+- [ ] Default values:
+  - C: US
+  - ST: California
+  - L: San Francisco
+  - O: ogt11
+  - OU: Certificate Authority
+- [ ] Make these values configurable through environment variables or configuration files
+
+## Group Membership
+- [ ] Make users members of the ogt11 group by default
+- [ ] Make the default group name configurable
+- [ ] Update user creation/management to handle default group membership
+- [ ] Ensure group membership is reflected in certificate generation
+
+## Implementation Notes
+- Changes needed in:
+  - `user-request/src/public/js/csr.js`
+  - User management system
+  - Certificate generation process
+- Consider backward compatibility with existing certificates
+- Document configuration options for system administrators 

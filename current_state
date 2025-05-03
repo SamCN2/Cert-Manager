@@ -1,0 +1,36 @@
+Where We Are (Current State)
+cert-request:
+Renders only if userData and validationToken are present in the URL.
+If not, it redirects (currently to /).
+user-request:
+Handles new user registration and email validation.
+After validation, creates a user and issues a validation token.
+Redirects to /request/validation-success after successful validation.
+Has a /revalidate route for existing users to request a new validation email.
+nginx and routing:
+All services are correctly routed and up-to-date.
+Groups:
+Groups exist in the database, but users and user_groups are empty until validation occurs.
+Where We Want to Be (Target Flow)
+For New Users:
+User clicks “Request Certificate” (or similar) on the main page.
+User goes through registration and email validation.
+After validation, user is redirected to /cert-request with the required parameters to generate a certificate.
+For Existing Users (Lost/Expired Certificate):
+User clicks “Request New Certificate (Existing User)” on the main page.
+User is taken to /revalidate, enters their email.
+If the user exists, a new validation email is sent.
+After validating the email, user is redirected to /cert-request with the required parameters.
+For Both Flows:
+If a user tries to access /cert-request without the required parameters, they should be redirected to /revalidate (not /), so they can start the email validation process.
+Key Points to Focus On
+Redirect Logic:
+/cert-request should redirect to /revalidate if required parameters are missing.
+Validation Success:
+After successful validation (new or existing user), redirect to /cert-request with the correct parameters.
+User Experience:
+Clear instructions and smooth flow for both new and existing users.
+Next Steps
+Update cert-request’s redirect logic to go to /revalidate if parameters are missing.
+Update user-request’s validation controller to redirect to /cert-request (with parameters) after successful validation, not just to /request/validation-success.
+Ensure /revalidate flow works for existing users.
