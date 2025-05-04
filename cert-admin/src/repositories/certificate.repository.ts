@@ -4,8 +4,8 @@
 
 import {inject} from '@loopback/core';
 import {DefaultCrudRepository} from '@loopback/repository';
-import {PostgresDataSource} from '../datasources';
-import {Certificate, CertificateRelations} from '../models';
+import {Certificate, CertificateRelations} from '../models/certificate.model';
+import {DbDataSource} from '../datasources';
 
 export class CertificateRepository extends DefaultCrudRepository<
   Certificate,
@@ -13,7 +13,7 @@ export class CertificateRepository extends DefaultCrudRepository<
   CertificateRelations
 > {
   constructor(
-    @inject('datasources.postgres') dataSource: PostgresDataSource,
+    @inject('datasources.db') dataSource: DbDataSource,
   ) {
     super(Certificate, dataSource);
   }

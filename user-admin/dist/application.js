@@ -18,6 +18,8 @@ class UserAdminApplication extends (0, boot_1.BootMixin)((0, service_proxy_1.Ser
         super(options);
         // Set up the custom sequence
         this.sequence(sequence_1.MySequence);
+        // Set up base path
+        this.basePath('/api/user-admin');
         // Configure the PostgreSQL datasource
         const ds = new datasources_1.PostgresDataSource();
         this.dataSource(ds, 'postgres');

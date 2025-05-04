@@ -23,6 +23,9 @@ export class UserAdminApplication extends BootMixin(
     // Set up the custom sequence
     this.sequence(MySequence);
 
+    // Set up base path
+    this.basePath('/api/user-admin');
+
     // Configure the PostgreSQL datasource
     const ds = new PostgresDataSource();
     this.dataSource(ds, 'postgres');

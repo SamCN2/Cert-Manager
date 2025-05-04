@@ -28,7 +28,8 @@ import * as crypto from 'crypto';
 import {bind, inject} from '@loopback/core';
 import {rateLimiter} from '../middleware/rate-limiter.middleware';
 import {VersionService} from '../services/version.service';
-import { v7 as uuidv7 } from 'uuid';
+import {v7 as uuidv7} from 'uuid';
+import {authenticate} from '@loopback/authentication';
 
 // Add this interface near the top of the file
 interface SearchCriteria {
@@ -81,6 +82,7 @@ function generateSerialNumber(counter: number): string {
 }
 
 @bind()
+@authenticate('jwt')
 export class CertificateController {
   constructor(
     @repository(CertificateRepository)
@@ -94,7 +96,7 @@ export class CertificateController {
     return uuidv7();
   }
 
-  @post('/certificate')
+  @post('/certificates')
   @response(200, {
     description: 'Certificate model instance',
     content: {'application/json': {schema: getModelSchemaRef(Certificate)}},
@@ -112,58 +114,33 @@ export class CertificateController {
     })
     certificate: Certificate,
   ): Promise<Certificate> {
-    let retryCount = 0;
-    let lastError;
-    let lastSerialNumber;
+    try {
+      const serialNumber = uuidv7();
+      const now = new Date();
+      const oneYear = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
+      
+      const newCertificate = {
+        ...certificate,
+        serialNumber,
+        not_before: now,
+        not_after: oneYear,
+        status: 'active' as const,
+        userid: certificate.userid,
+        code_version: this.versionService.getCurrentVersion(),
+        createdat: now,
+        is_first_certificate: false,
+      };
 
-    while (retryCount < 3) {
-      try {
-        // Add a small delay between retries
-        if (retryCount > 0) {
-          await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
-        }
-
-        const serialNumber = await this.generateSerialNumber();
-        lastSerialNumber = serialNumber;
-        const now = new Date();
-        const oneYear = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
-        
-        const newCertificate = {
-          ...certificate,
-          serialNumber,
-          not_before: now,
-          not_after: oneYear,
-          status: 'active' as const,
-          userid: certificate.userid,
-          code_version: this.versionService.getCurrentVersion(),
-          createdat: now,
-          is_first_certificate: false,
-        };
-
-        return await this.certificateRepository.create(newCertificate);
-      } catch (error) {
-        lastError = error;
-        // Retry on any unique violation, as we're generating a new serial number each time
-        if (error.code === '23505') {
-          const constraint = error.detail?.match(/Key \((.*)\)=/)?.at(1) || 'unknown';
-          console.error(`Unique violation detected. Attempt ${retryCount + 1}, Constraint: ${constraint}, Serial: ${lastSerialNumber}`);
-          retryCount++;
-          continue;
-        }
-        // For any other error, throw it immediately
-        throw error;
-      }
+      return await this.certificateRepository.create(newCertificate);
+    } catch (error) {
+      console.error('Failed to create certificate:', error);
+      throw new HttpErrors.InternalServerError(
+        `Failed to create certificate: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
-
-    // If we get here, we've exhausted our retries
-    const constraint = lastError?.detail?.match(/Key \((.*)\)=/)?.at(1) || 'unknown';
-    console.error(`Failed to create certificate after ${retryCount} attempts. Last constraint: ${constraint}, Last serial: ${lastSerialNumber}`);
-    throw new HttpErrors.Conflict(
-      `Failed to create certificate after multiple attempts. Last constraint: ${constraint}, Last serial: ${lastSerialNumber}`
-    );
   }
 
-  @get('/certificate/count')
+  @get('/certificates/count')
   @response(200, {
     description: 'Certificate model count',
     content: {'application/json': {schema: CountSchema}},
@@ -171,10 +148,15 @@ export class CertificateController {
   async count(
     @param.where(Certificate) where?: Where<Certificate>,
   ): Promise<Count> {
-    return this.certificateRepository.count(where);
+    try {
+      return await this.certificateRepository.count(where);
+    } catch (error) {
+      console.error('Failed to count certificates:', error);
+      throw new HttpErrors.InternalServerError('Failed to count certificates');
+    }
   }
 
-  @get('/certificate')
+  @get('/certificates')
   @response(200, {
     description: 'Array of Certificate model instances',
     content: {
@@ -189,10 +171,15 @@ export class CertificateController {
   async find(
     @param.filter(Certificate) filter?: Filter<Certificate>,
   ): Promise<Certificate[]> {
-    return this.certificateRepository.find(filter);
+    try {
+      return await this.certificateRepository.find(filter);
+    } catch (error) {
+      console.error('Failed to find certificates:', error);
+      throw new HttpErrors.InternalServerError('Failed to retrieve certificates');
+    }
   }
 
-  @patch('/certificate')
+  @patch('/certificates')
   @response(200, {
     description: 'Certificate PATCH success count',
     content: {'application/json': {schema: CountSchema}},
@@ -208,10 +195,15 @@ export class CertificateController {
     certificate: Certificate,
     @param.where(Certificate) where?: Where<Certificate>,
   ): Promise<Count> {
-    return this.certificateRepository.updateAll(certificate, where);
+    try {
+      return await this.certificateRepository.updateAll(certificate, where);
+    } catch (error) {
+      console.error('Failed to update certificates:', error);
+      throw new HttpErrors.InternalServerError('Failed to update certificates');
+    }
   }
 
-  @get('/certificate/{id}')
+  @get('/certificates/{id}')
   @response(200, {
     description: 'Certificate model instance',
     content: {
@@ -224,10 +216,15 @@ export class CertificateController {
     @param.path.string('id') id: string,
     @param.filter(Certificate, {exclude: 'where'}) filter?: FilterExcludingWhere<Certificate>
   ): Promise<Certificate> {
-    return this.certificateRepository.findById(id, filter);
+    try {
+      return await this.certificateRepository.findById(id, filter);
+    } catch (error) {
+      console.error('Failed to find certificate by ID:', error);
+      throw new HttpErrors.NotFound(`Certificate with ID ${id} not found`);
+    }
   }
 
-  @patch('/certificate/{id}')
+  @patch('/certificates/{id}')
   @response(204, {
     description: 'Certificate PATCH success',
   })
@@ -242,10 +239,15 @@ export class CertificateController {
     })
     certificate: Certificate,
   ): Promise<void> {
-    await this.certificateRepository.updateById(id, certificate);
+    try {
+      await this.certificateRepository.updateById(id, certificate);
+    } catch (error) {
+      console.error('Failed to update certificate by ID:', error);
+      throw new HttpErrors.NotFound(`Certificate with ID ${id} not found`);
+    }
   }
 
-  @put('/certificate/{id}')
+  @put('/certificates/{id}')
   @response(204, {
     description: 'Certificate PUT success',
   })
@@ -253,18 +255,28 @@ export class CertificateController {
     @param.path.string('id') id: string,
     @requestBody() certificate: Certificate,
   ): Promise<void> {
-    await this.certificateRepository.replaceById(id, certificate);
+    try {
+      await this.certificateRepository.replaceById(id, certificate);
+    } catch (error) {
+      console.error('Failed to replace certificate by ID:', error);
+      throw new HttpErrors.NotFound(`Certificate with ID ${id} not found`);
+    }
   }
 
-  @del('/certificate/{id}')
+  @del('/certificates/{id}')
   @response(204, {
     description: 'Certificate DELETE success',
   })
   async deleteById(@param.path.string('id') id: string): Promise<void> {
-    await this.certificateRepository.deleteById(id);
+    try {
+      await this.certificateRepository.deleteById(id);
+    } catch (error) {
+      console.error('Failed to delete certificate by ID:', error);
+      throw new HttpErrors.NotFound(`Certificate with ID ${id} not found`);
+    }
   }
 
-  @get('/certificate/search')
+  @get('/certificates/search')
   @response(200, {
     description: 'Search certificates by version or fingerprint',
     content: {
@@ -280,29 +292,37 @@ export class CertificateController {
     @param.query.string('version') version?: string,
     @param.query.string('fingerprint') fingerprint?: string,
   ): Promise<Certificate[]> {
-    const criteria: SearchCriteria = {};
-    
-    // Build search criteria
-    if (version) criteria.codeVersion = version;
-    if (fingerprint) criteria.fingerprint = fingerprint;
+    try {
+      const criteria: SearchCriteria = {};
+      
+      // Build search criteria
+      if (version) criteria.codeVersion = version;
+      if (fingerprint) criteria.fingerprint = fingerprint;
 
-    // If no criteria provided, throw an error
-    if (Object.keys(criteria).length === 0) {
-      throw new HttpErrors.BadRequest(
-        'At least one search criterion (version or fingerprint) must be provided'
-      );
+      // If no criteria provided, throw an error
+      if (Object.keys(criteria).length === 0) {
+        throw new HttpErrors.BadRequest(
+          'At least one search criterion (version or fingerprint) must be provided'
+        );
+      }
+
+      // Create WHERE clause for all provided criteria
+      const where = {
+        and: Object.entries(criteria).map(([key, value]) => ({
+          [key]: value
+        }))
+      };
+
+      return await this.certificateRepository.find({
+        where,
+        order: ['not_before DESC']
+      });
+    } catch (error) {
+      if (error instanceof HttpErrors.HttpError) {
+        throw error;
+      }
+      console.error('Failed to search certificates:', error);
+      throw new HttpErrors.InternalServerError('Failed to search certificates');
     }
-
-    // Create WHERE clause for all provided criteria
-    const where = {
-      and: Object.entries(criteria).map(([key, value]) => ({
-        [key]: value
-      }))
-    };
-
-    return this.certificateRepository.find({
-      where,
-      order: ['not_before DESC']
-    });
   }
 }

@@ -1,4 +1,4 @@
-import {Client} from '@loopback/testlab';
+import {Client, expect} from '@loopback/testlab';
 import {CertAdminApplication} from '../..';
 import {setupApplication} from './test-helper';
 
@@ -6,11 +6,11 @@ describe('HomePage', () => {
   let app: CertAdminApplication;
   let client: Client;
 
-  before('setupApplication', async () => {
+  beforeAll(async () => {
     ({app, client} = await setupApplication());
   });
 
-  after(async () => {
+  afterAll(async () => {
     await app.stop();
   });
 
@@ -18,14 +18,15 @@ describe('HomePage', () => {
     await client
       .get('/')
       .expect(200)
-      .expect('Content-Type', /text\/html/);
+      .expect('Content-Type', /text\/html/)
+      .expect(/Certificate Administration System/);
   });
 
-  it('exposes self-hosted explorer', async () => {
+  it('exposes API explorer', async () => {
     await client
       .get('/explorer/')
       .expect(200)
       .expect('Content-Type', /text\/html/)
-      .expect(/<title>LoopBack API Explorer/);
+      .expect(/Swagger UI/);
   });
 });

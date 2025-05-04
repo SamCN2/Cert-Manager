@@ -1,77 +1,38 @@
-const forge = require('node-forge');
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { execSync } = require('child_process');
+import CertificateClient from './prototypes/crypto-migration/client/certificate-client.js';
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { execSync } from 'child_process';
 
 // Configuration
 const config = {
     baseUrl: 'https://urp.ogt11.com',
     csrEndpoint: '/api/cert-admin/csr/sign',
-    commonName: 'test.example.com',
-    email: 'test@example.com',
-    organization: 'Test Organization',
-    organizationalUnit: 'Test Unit',
-    locality: 'Test City',
-    state: 'Test State',
+    commonName: 'taarna.ogt11.com',
+    email: 'taarna@ogt11.com',
+    organization: 'ogt11.com, llc',
+    organizationalUnit: 'Certificate Authority',
+    locality: 'San Francisco',
+    state: 'California',
     country: 'US',
-    userId: uuidv4(),
-    username: 'test-user'
+    username: 'taarna'
 };
 
-// Generate key pair
-function generateKeyPair() {
-    const keys = forge.pki.rsa.generateKeyPair(2048);
-    return {
-        privateKey: keys.privateKey,
-        publicKey: keys.publicKey
-    };
-}
-
-// Create CSR
-function createCSR(privateKey, publicKey) {
-    const csr = forge.pki.createCertificationRequest();
-    csr.publicKey = publicKey;
-    csr.setSubject([{
-        name: 'commonName',
-        value: config.commonName
-    }, {
-        name: 'emailAddress',
-        value: config.email
-    }, {
-        name: 'organizationName',
-        value: config.organization
-    }, {
-        name: 'organizationalUnitName',
-        value: config.organizationalUnit
-    }, {
-        name: 'localityName',
-        value: config.locality
-    }, {
-        name: 'stateOrProvinceName',
-        value: config.state
-    }, {
-        name: 'countryName',
-        value: config.country
-    }]);
-
-    // Sign CSR with private key
-    csr.sign(privateKey);
-    return forge.pki.certificationRequestToPem(csr);
-}
+// Create certificate client
+const client = new CertificateClient();
 
 // Send CSR to signing endpoint
-function signCSR(csrPem) {
+async function signCSR(csrPem) {
     return new Promise((resolve, reject) => {
         const requestBody = {
             csr: csrPem,
-            userId: config.userId,
             username: config.username,
             email: config.email
         };
 
-        console.log('Sending request to:', config.baseUrl + config.csrEndpoint);
+        console.log('Sending CSR to:', config.baseUrl + config.csrEndpoint);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
         const options = {
             hostname: 'urp.ogt11.com',
@@ -87,6 +48,7 @@ function signCSR(csrPem) {
 
         const req = https.request(options, (res) => {
             console.log('Response status:', res.statusCode);
+            console.log('Response headers:', res.headers);
             
             let data = '';
             res.on('data', (chunk) => {
@@ -94,15 +56,23 @@ function signCSR(csrPem) {
             });
             res.on('end', () => {
                 try {
+                    if (res.statusCode !== 200) {
+                        console.error('Server error response:', data);
+                        reject(new Error(`Server returned ${res.statusCode}: ${data}`));
+                        return;
+                    }
+
                     const response = JSON.parse(data);
-                    if (response.error) {
-                        reject(new Error(response.error.message || 'Server error'));
+                    if (!response.certificate || !response.caCertificate) {
+                        reject(new Error('Invalid server response - missing certificate data'));
                         return;
                     }
                     
-                    // The certificate is already properly formatted from the server
-                    // No need to clean or normalize it
-                    resolve(response.certificate);
+                    resolve({
+                        certificate: response.certificate,
+                        caCertificate: response.caCertificate,
+                        serialNumber: response.serialNumber
+                    });
                 } catch (error) {
                     console.error('Error parsing response:', error);
                     reject(error);
@@ -120,80 +90,75 @@ function signCSR(csrPem) {
     });
 }
 
-// Create PKCS12 wrapper
-function createPKCS12(certPem, privateKey, password) {
-    try {
-        // Parse the certificate directly from PEM
-        const certObj = forge.pki.certificateFromPem(certPem);
-        
-        // Create PKCS12 using node-forge with standard parameters
-        const p12Asn1 = forge.pkcs12.toPkcs12Asn1(
-            privateKey,
-            [certObj],
-            password,
-            {
-                friendlyName: config.commonName,
-                algorithm: '3des',
-                generateLocalKeyId: true,
-                saltSize: 8,
-                iterations: 2048
-            }
-        );
-        
-        // Convert to DER
-        const p12Der = forge.asn1.toDer(p12Asn1).getBytes();
-        
-        // Create buffer from DER bytes
-        const buffer = new Uint8Array(p12Der.length);
-        for (let i = 0; i < p12Der.length; ++i) {
-            buffer[i] = p12Der.charCodeAt(i);
-        }
-        
-        return Buffer.from(buffer).toString('base64');
-    } catch (error) {
-        console.error('Detailed error in createPKCS12:', error);
-        if (error.stack) {
-            console.error('Stack trace:', error.stack);
-        }
-        throw error;
-    }
-}
-
 // Main function
 async function main() {
     try {
         // Generate key pair
         console.log('Step 1: Generating key pair...');
-        const { privateKey, publicKey } = await generateKeyPair();
+        const keyPair = await client.generateKeyPair('P-384');
         console.log('✓ Key pair generated successfully');
         
         // Create CSR
-        console.log('Step 2: Creating CSR...');
-        const csr = await createCSR(privateKey, publicKey);
+        console.log('\nStep 2: Creating CSR...');
+        const subject = {
+            country: config.country,
+            state: config.state,
+            locality: config.locality,
+            organization: config.organization,
+            organizationalUnit: config.organizationalUnit,
+            commonName: config.commonName,
+            emailAddress: config.email
+        };
+        const csr = await client.generateCSR(keyPair, subject);
         console.log('✓ CSR created successfully');
         
+        // Save CSR for inspection
+        fs.writeFileSync('request.csr', csr);
+        console.log('✓ CSR saved to request.csr');
+        
         // Send CSR for signing
-        console.log('Step 3: Sending CSR for signing...');
-        const certPem = await signCSR(csr);
+        console.log('\nStep 3: Sending CSR for signing...');
+        const { certificate, caCertificate, serialNumber } = await signCSR(csr);
         console.log('✓ Certificate received successfully');
+        console.log('Serial number:', serialNumber);
+        
+        // Save certificates for inspection
+        fs.writeFileSync('certificate.pem', certificate);
+        fs.writeFileSync('ca.pem', caCertificate);
+        console.log('✓ Certificates saved to certificate.pem and ca.pem');
+        
+        // Verify certificate chain
+        console.log('\nStep 4: Verifying certificate chain...');
+        const chainValid = await client.verifyChain(certificate, caCertificate);
+        if (chainValid) {
+            console.log('✓ Certificate chain is valid');
+        } else {
+            throw new Error('Certificate chain verification failed');
+        }
         
         // Create PKCS12 wrapper
-        console.log('Step 4: Creating PKCS12 wrapper...');
-        const p12Base64 = createPKCS12(certPem, privateKey, 'test123');
+        console.log('\nStep 5: Creating PKCS12 wrapper...');
+        const password = 'test123';
+        const p12Buffer = await client.createPKCS12(certificate, keyPair.privateKey, password);
         console.log('✓ PKCS12 wrapper created successfully');
         
         // Write PKCS12 to file
-        console.log('Step 5: Writing PKCS12 to file...');
-        fs.writeFileSync('certificate.p12', Buffer.from(p12Base64, 'base64'));
+        console.log('\nStep 6: Writing PKCS12...');
+        fs.writeFileSync('certificate.p12', p12Buffer);
         console.log('✓ PKCS12 file written to certificate.p12');
+        
+        console.log('\nAll steps completed successfully!');
+        console.log('Generated files:');
+        console.log('- request.csr: The certificate signing request');
+        console.log('- certificate.pem: The signed certificate');
+        console.log('- ca.pem: The CA certificate');
+        console.log('- certificate.p12: The PKCS12 bundle (password: test123)');
     } catch (err) {
-        console.error('Error occurred:', err.message);
+        console.error('\nError occurred:', err.message);
         if (err.stack) {
             console.error('Stack trace:', err.stack);
         }
-        if (err.response && err.response.data) {
-            console.error('Server response:', err.response.data);
-        }
+        process.exit(1);
     }
 }
 

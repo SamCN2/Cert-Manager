@@ -14,6 +14,11 @@ import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {MySequence} from './sequence';
 import {CSRController} from './controllers/csr.controller';
+import {CertificateController} from './controllers/certificate.controller';
+import {CertificateService} from './services/certificate.service';
+import {CertificateRepository} from './repositories/certificate.repository';
+import {UserRepository} from './repositories/user.repository';
+import {CertificateService as CertificateServiceType} from './types';
 
 export {ApplicationConfig};
 
@@ -27,7 +32,7 @@ export class CertAdminApplication extends BootMixin(
     this.sequence(MySequence);
 
     // Set up default home page
-    this.static('/', path.join(__dirname, '../webroot'));
+    this.static('/', path.join(__dirname, '../public'));
 
     // Customize @loopback/rest-explorer configuration here
     this.configure(RestExplorerBindings.COMPONENT).to({
@@ -35,8 +40,24 @@ export class CertAdminApplication extends BootMixin(
     });
     this.component(RestExplorerComponent);
 
+    // Configure base path for all routes
+    this.basePath('/api/cert-admin');
+
     // Register controllers
     this.controller(CSRController);
+    this.controller(CertificateController);
+
+    // Configure repositories
+    this.repository(CertificateRepository);
+    this.repository(UserRepository);
+
+    // Configure services
+    this.service(CertificateService);
+
+    // Configure bindings
+    this.bind('services.CertificateService').toClass(CertificateService);
+    this.bind('repositories.CertificateRepository').toClass(CertificateRepository);
+    this.bind('repositories.UserRepository').toClass(UserRepository);
 
     this.projectRoot = __dirname;
     // Customize @loopback/boot Booter Conventions here

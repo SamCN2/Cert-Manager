@@ -7,7 +7,7 @@ set -e
 
 # Default values
 DAYS=3650  # 10 years
-KEY_SIZE=4096
+CURVE="secp384r1"  # Using secp384r1 for better security and performance
 COUNTRY="US"
 STATE="California"
 LOCALITY="San Francisco"
@@ -23,8 +23,8 @@ if [ ! -f serial ]; then
     echo "01" > serial
 fi
 
-# Generate CA private key
-openssl genrsa -out private/ca-key.pem ${KEY_SIZE}
+# Generate CA private key using EC
+openssl ecparam -genkey -name ${CURVE} -out private/ca-key.pem
 chmod 400 private/ca-key.pem
 
 # Generate CA certificate
@@ -54,7 +54,7 @@ crlnumber         = \$dir/crlnumber
 crl_extensions    = crl_ext
 default_crl_days  = 30
 
-default_md        = sha256
+default_md        = sha384
 name_opt         = ca_default
 cert_opt         = ca_default
 default_days     = 365
@@ -70,10 +70,11 @@ commonName             = supplied
 emailAddress           = optional
 
 [ req ]
-default_bits        = 2048
+default_bits        = 384
+default_keyfile     = private/ca-key.pem
 distinguished_name  = req_distinguished_name
 string_mask        = utf8only
-default_md         = sha256
+default_md         = sha384
 x509_extensions    = v3_ca
 
 [ req_distinguished_name ]
@@ -90,12 +91,14 @@ subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer
 basicConstraints = critical, CA:true
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+extendedKeyUsage = serverAuth, clientAuth, codeSigning, emailProtection
 
 [ v3_intermediate_ca ]
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer
 basicConstraints = critical, CA:true, pathlen:0
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+extendedKeyUsage = serverAuth, clientAuth, codeSigning, emailProtection
 
 [ usr_cert ]
 basicConstraints = CA:FALSE
@@ -105,6 +108,7 @@ subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
 keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth, emailProtection
+subjectAltName = email:move
 EOL
 
 echo "CA certificate and key have been generated."

@@ -41,52 +41,105 @@ function debounce(func, wait) {
     };
 }
 
-/**
- * Generate a key pair for the certificate
- * @returns {Promise<Object>} The generated key pair
- */
-async function generateKeyPair() {
-    return new Promise((resolve, reject) => {
-        try {
-            const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
-            resolve(keyPair);
-        } catch (error) {
-            reject(error);
+import {X509CertificationRequest} from '@peculiar/x509';
+
+class CSRGenerator {
+  constructor() {
+    this.keyPair = null;
+  }
+
+  async generateKeyPair(curve = 'P-384') {
+    try {
+      this.keyPair = await window.crypto.subtle.generateKey(
+        {
+          name: 'ECDSA',
+          namedCurve: curve
+        },
+        true,
+        ['sign', 'verify']
+      );
+      
+      return this.keyPair;
+    } catch (error) {
+      console.error('Key pair generation failed:', error);
+      throw error;
+    }
+  }
+
+  async generateCSR(subject) {
+    if (!this.keyPair) {
+      throw new Error('Key pair not generated. Call generateKeyPair() first.');
+    }
+
+    try {
+      // Create CSR
+      const csr = new X509CertificationRequest();
+      
+      // Set public key
+      csr.publicKey = this.keyPair.publicKey;
+      
+      // Set subject
+      csr.subject = subject;
+      
+      // Add extensions
+      csr.extensions = [
+        {
+          name: 'basicConstraints',
+          critical: true,
+          cA: false,
+        },
+        {
+          name: 'keyUsage',
+          critical: true,
+          digitalSignature: true,
+          nonRepudiation: true,
+          keyEncipherment: true,
+        },
+        {
+          name: 'extKeyUsage',
+          serverAuth: true,
+          clientAuth: true,
+          emailProtection: true,
         }
-    });
+      ];
+      
+      // Sign CSR
+      await csr.sign(this.keyPair.privateKey, 'sha256');
+      
+      // Convert to PEM
+      return csr.toString('pem');
+    } catch (error) {
+      console.error('CSR generation failed:', error);
+      throw error;
+    }
+  }
+
+  async createPKCS12(certificate, password) {
+    if (!this.keyPair) {
+      throw new Error('Key pair not generated. Call generateKeyPair() first.');
+    }
+
+    try {
+      // Create PKCS#12 container
+      const p12 = new X509CertificationRequest();
+      
+      // Add certificate and private key
+      p12.addCertificate(certificate);
+      p12.addPrivateKey(this.keyPair.privateKey);
+      
+      // Convert to PKCS#12 format
+      const p12Bytes = await p12.toPKCS12(password);
+      
+      // Convert to base64
+      return btoa(String.fromCharCode(...new Uint8Array(p12Bytes)));
+    } catch (error) {
+      console.error('PKCS#12 creation failed:', error);
+      throw error;
+    }
+  }
 }
 
-/**
- * Generate a CSR with the provided key pair and user data
- * @param {Object} keyPair - The key pair to use for the CSR
- * @param {Object} userData - The user data to include in the CSR
- * @returns {Promise<Object>} The generated CSR
- */
-async function generateCSR(keyPair, userData) {
-    return new Promise((resolve, reject) => {
-        try {
-            // Create a certificate request
-            const csr = forge.pki.createCertificationRequest();
-            csr.publicKey = keyPair.publicKey;
-            
-            // Set the subject - exactly matching test script
-            csr.setSubject([{
-                name: 'commonName',
-                value: userData.username
-            }, {
-                name: 'emailAddress',
-                value: userData.email
-            }]);
-            
-            // Sign the CSR
-            csr.sign(keyPair.privateKey);
-            
-            resolve(csr);
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
+export default CSRGenerator;
 
 // Add function to populate form with user data
 async function populateUserData(username) {
